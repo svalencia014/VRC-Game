@@ -11,19 +11,25 @@ namespace VRC_Game.Server
 		public static TcpClient Client;
 		public static StreamWriter writer;
 		public static string Callsign;
+		public static StreamWriter logger;
 
 		//define events
 		public static event EventHandler<ConnectedEventArgs> Connected;
 		public event EventHandler<FlightPlanRequestedEventArgs> FlightPlanRequested;
 		public event EventHandler<MessageSentEventArgs> MessageSent;
-		public event EventHandler<AtcUpdatedEventArgs> AtcUpdated;
+		public event EventHandler<AtcMessageSentEventArgs> AtcMessageSent;
+        public event EventHandler<AtcUpdatedEventArgs> AtcUpdated;
 		public event EventHandler<AtcLoggedOffEventArgs> AtcLoggedOff;
 		
 		public async void Start()
 		{
 			TcpListener server = new(IPAddress.Any, 6809);
+			//Setup log file
+			LogFile.Create();
 			server.Start();
-			await AcceptAndProcess(server);
+            LogFile.Log("Server Started");
+
+            await AcceptAndProcess(server);
 			
 		}
 		
@@ -38,8 +44,9 @@ namespace VRC_Game.Server
 					StreamReader reader = new(stream);
 					writer = new(stream) { AutoFlush = true };
 					await Send($"$DISERVER:CLIENT:VATSIM FSD V3.13:3ef36a24");
-					
-					while (true)
+					LogFile.Log("Connected!");
+
+                    while (true)
 					{
 						var info = await reader.ReadLineAsync();
 
@@ -71,9 +78,13 @@ namespace VRC_Game.Server
 
 		public async Task<bool> ProcessLine(string info)
 		{
-			if (info == null) throw new ArgumentNullException(nameof(info));
-			
-			if (info.StartsWith("%" + Callsign))
+            if (info == null) 
+			{ 
+				LogFile.Log("Argument Null Exception"); 
+				throw new ArgumentNullException(nameof(info)); 
+			}
+
+            if (info.StartsWith("%" + Callsign))
 			{
 				//Position update
 			}
@@ -93,7 +104,6 @@ namespace VRC_Game.Server
 			if (info.StartsWith("#AP"))
 			{
 				//Not going to happen ever
-				// I will pay you $100 if this happens
 				//AP = New Pilot Connection
 				//No ATC Client should send AP Command
 			}
@@ -106,19 +116,57 @@ namespace VRC_Game.Server
 			
 			if (info.StartsWith("$CQ"))
 			{
-				//$CQJAX_GND:JAX_TWR:RN - Real Name
-				//Expect: $CRJAX_TWR_JAX_GND:RN:<Name>:<location><rating>
+                //$CQJAX_GND:JAX_TWR:RN - Real Name
+                //Expect: $CRJAX_TWR_JAX_GND:RN:<Name>:<location><rating>
 
-				//$CQJAX_GND:@21900:VC:AF1:2677 - Set Squawk
-				//$CQJAX_GND:SERVER:FP:AF1 - Request FPLAN
-				
-				//$CQJAX_GND:@21900:DR:AF1 - Assume/Track Callsign
-				//#TMJAX_GND:FP:AF1 - Release/Drop Callsign
-			}
+                //$CQJAX_GND:@21900:VC:AF1:2677 - Set Squawk
+                //$CQJAX_GND:SERVER:FP:AF1 - Request FPLAN
+
+                //$CQJAX_GND:@21900:DR:AF1 - Assume/Track Callsign
+                //#TMJAX_GND:FP:AF1 - Release/Drop Callsign
+                
+                var tokens = info.Substring("$CQ".Length).Split(new char[] { ':' },4);
+				var sender = tokens[0];
+				var recipient = tokens[1];
+				var command = tokens[2];
+                var data = tokens.Length == 4 ? tokens[3] : null;
+                
+                if (recipient == "SERVER")
+				{
+					switch (command)
+					{
+						case "ATC":
+							await Send($"$CRSERVER:{Callsign}:ATC:Y:{data}");
+							break;
+						case "CAPS":
+							await Send($"$CRSERVER:{Callsign}:CAPS:ATCINFO=1:SECPOS=1");
+							break;
+                            
+						case "IP":
+							var ipep = (IPEndPoint)Client.Client.RemoteEndPoint;
+							var ipa = ipep.Address;
+							await Send($"$CRSERVER:{Callsign}:IP:{ipa}");
+							await Send($"$CQSERVER:{Callsign}:CAPS");
+							break;
+
+						case "FP":
+							FlightPlanRequested?.Invoke(this, new FlightPlanRequestedEventArgs(data));
+							break;
+                    }
+				} else
+				{
+					if (command == "RN")
+					{
+						await Send($"CR{recipient}:{Callsign}:RN:VRC Game Simulated Controller:{recipient}:11");
+					}
+                    AtcMessageSent?.Invoke(this, new AtcMessageSentEventArgs(recipient, info));
+                }
+            }
 
 			if (info.StartsWith("$CR"))
 			{
-				//idk what does does
+				//Server responding to a $CQ.
+                //Server will never recieve this
 			}
 			
 			if (info.StartsWith("$HO") || info.StartsWith("#PC"))
@@ -145,12 +193,49 @@ namespace VRC_Game.Server
 				var lat = tokens.Length > 9 ? double.Parse(tokens[9]) : (double?)null;
 				var lng = tokens.Length > 10 ? double.Parse(tokens[10]) : (double?)null;
 
-				await Send($"$TMVRCGame:{Callsign}:Connected");
+				await Send($"#TMVRCGame:{Callsign}:Connected");
+                LogFile.Log($"{ Callsign} connected");
 
-				Connected?.Invoke(this, new(Callsign, realName, certificate, rating, lat, lng));
+                Connected?.Invoke(this, new(Callsign, realName, certificate, rating, lat, lng));
 			}			
 			
 			return false;
+		}
+	}
+
+	public class LogFile
+	{
+        public static readonly string path = "C:\\VRCGame\\Logs\\" + DateTime.Now.ToString("yyyyddMM-HHmmss") + ".txt";
+
+        public static void Create()
+		{
+			StreamWriter file;
+			if (!File.Exists(path))
+			{
+				if (!Directory.Exists("C:\\VRCGame\\Logs\\"))
+				{
+					Directory.CreateDirectory("C:\\VRCGame\\Logs\\");
+				}
+				file = File.CreateText(path);
+			}
+            else
+			{
+				file = new(path, true);
+			}
+			file.WriteLine(DateTime.Now + ": Log file Created");
+			file.Close();
+		}
+		
+		public static void Log(string text)
+		{
+			StreamWriter file;
+			if (!File.Exists(path))
+			{
+				Create();
+			}
+			file = new(path, true);
+			file.WriteLine(DateTime.Now + ": " + text);
+			file.Close();
 		}
 	}
 }
