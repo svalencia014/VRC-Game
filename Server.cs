@@ -29,7 +29,7 @@ namespace VRC_Game.Server
 			LogFile.Create();
 			server.Start();
             LogFile.Log("Server Started");
-			Controller.Create(path);
+			//Controller.Create(path);
             
 
             await AcceptAndProcess(server);

@@ -31,5 +31,27 @@ namespace VRC_Game
         {
             //Not used
         }
+
+        private void openFileDialog1_FileOk(object sender, CancelEventArgs e)
+        {
+            // Not Used
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            OpenFileDialog openFileDialog1 = new OpenFileDialog
+            {
+                InitialDirectory = @"C:\",
+                DefaultExt = "txt",
+                CheckFileExists = true,
+                CheckPathExists = true
+            };
+            
+            if (openFileDialog1.ShowDialog() == DialogResult.OK)
+            {
+                filePath.Text = openFileDialog1.FileName;
+            }
+
+        }
     }
 }

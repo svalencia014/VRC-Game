@@ -19,7 +19,7 @@ namespace VRC_Game.Controllers
 		{
 			//Pull in info from Parsed File
 			SituationFile sit = new();
-			sit.getControllers(path);
+			sit.GetControllers(path);
 		}
 	}
 }
