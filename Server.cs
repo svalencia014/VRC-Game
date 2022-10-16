@@ -3,6 +3,7 @@ using System.IO;
 using System.Net;
 using System.Net.Sockets;
 using System.Threading.Tasks;
+using VRC_Game.Controllers;
 
 namespace VRC_Game.Server
 {
@@ -19,15 +20,17 @@ namespace VRC_Game.Server
 		public event EventHandler<MessageSentEventArgs> MessageSent;
 		public event EventHandler<AtcMessageSentEventArgs> AtcMessageSent;
         public event EventHandler<AtcUpdatedEventArgs> AtcUpdated;
-		public event EventHandler<AtcLoggedOffEventArgs> AtcLoggedOff;
+		public static event EventHandler<AtcLoggedOffEventArgs> AtcLoggedOff;
 		
-		public async void Start()
+		public async void Start(string path)
 		{
 			TcpListener server = new(IPAddress.Any, 6809);
 			//Setup log file
 			LogFile.Create();
 			server.Start();
             LogFile.Log("Server Started");
+			Controller.Create(path);
+            
 
             await AcceptAndProcess(server);
 			
@@ -70,10 +73,12 @@ namespace VRC_Game.Server
 			}
 		}
 
-		public static async Task Disconnect()
+		public void Disconnect()
 		{
 			writer = null;
+			LogFile.Log("Disconnected!");
 
+			AtcLoggedOff?.Invoke(this, new(Callsign));
 		}
 
 		public async Task<bool> ProcessLine(string info)

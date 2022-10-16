@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.IO.Ports;
 using System.Linq;
 using System.Text;
@@ -22,7 +23,13 @@ namespace VRC_Game
         private void button1_Click(object sender, EventArgs e)
         {
             FSDServer server = new();
-            server.Start();
+            string Path = filePath.Text;
+            server.Start(Path);
+        }
+
+        private void filePath_TextChanged(object sender, EventArgs e)
+        {
+            //Not used
         }
     }
 }
