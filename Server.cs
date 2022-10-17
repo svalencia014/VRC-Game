@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Runtime.InteropServices.ComTypes;
+using System.Threading;
 using System.Threading.Tasks;
 using VRC_Game.Controllers;
 
@@ -16,10 +18,10 @@ namespace VRC_Game.Server
 
 		//define events
 		public static event EventHandler<ConnectedEventArgs> Connected;
-		public event EventHandler<FlightPlanRequestedEventArgs> FlightPlanRequested;
-		public event EventHandler<MessageSentEventArgs> MessageSent;
-		public event EventHandler<AtcMessageSentEventArgs> AtcMessageSent;
-        public event EventHandler<AtcUpdatedEventArgs> AtcUpdated;
+		public static event EventHandler<FlightPlanRequestedEventArgs> FlightPlanRequested;
+		public static event EventHandler<MessageSentEventArgs> MessageSent;
+		public static event EventHandler<AtcMessageSentEventArgs> AtcMessageSent;
+        public static event EventHandler<AtcUpdatedEventArgs> AtcUpdated;
 		public static event EventHandler<AtcLoggedOffEventArgs> AtcLoggedOff;
 		
 		public async void Start(string path)
@@ -28,39 +30,37 @@ namespace VRC_Game.Server
 			//Setup log file
 			LogFile.Create();
 			server.Start();
-            LogFile.Log("Server Started");
-			//Controller.Create(path);
-            
+            LogFile.Log("Server Started");            
 
             await AcceptAndProcess(server);
 			
 		}
-		
-		public async Task AcceptAndProcess(TcpListener server)
+
+		public Task AcceptAndProcess(TcpListener server)
 		{
 			while (true)
 			{
 				Client = server.AcceptTcpClient();
-				try
-				{
-					var stream = Client.GetStream();
-					StreamReader reader = new(stream);
-					writer = new(stream) { AutoFlush = true };
-					await Send($"$DISERVER:CLIENT:VATSIM FSD V3.13:3ef36a24");
-					LogFile.Log("Connected!");
+				Task.Run(() => HandleConnection(Client));
+            }
+		}
 
-                    while (true)
-					{
-						var info = await reader.ReadLineAsync();
 
-						if (await ProcessLine(info))
-						{
-							break;
-						}
-					}
-				} catch (IOException)
+		public async void HandleConnection(TcpClient client)
+		{
+			var stream = client.GetStream();
+			StreamReader reader = new(stream);
+			writer = new(stream) { AutoFlush = true };
+			await Send($"$DISERVER:CLIENT:VATSIM FSD V3.13:3ef36a24");
+			LogFile.Log("Connected!");
+
+			while (true)
+			{
+				var info = await reader.ReadLineAsync();
+
+				if (await ProcessLine(info))
 				{
-					Disconnect();
+					break;
 				}
 			}
 		}

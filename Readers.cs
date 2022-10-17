@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography.X509Certificates;
 using VRC_Game.Controllers;
 using VRC_Game.Server;
 
@@ -28,7 +27,7 @@ namespace VRC_Game.Readers
         }
         
        
-        public Controller GetControllers(string path)
+        public Controller[] GetControllers(string path)
         {
             // Parse Situtation.Txt
             if (!File.Exists(path))
@@ -42,18 +41,20 @@ namespace VRC_Game.Readers
                 string File = r.ReadToEnd();
                 string[] Config = File.Split('\n');
                 LogFile.Log(Config[0]);
+                List<Controller> controllerList = new();
+                Controller[] foundControllers = {};
                 for (int i = 0; i < Config.Length; i++ )
                 {
                     if (i == 0 && Config[i].StartsWith("CONTROLLER"))
                     {
                         //CONTROLLER:CALLSIGN:FREQ
-                        Controller[] foundControllers = { };
 
                         string[] Line = Config[i].Split(':');
                         string callsign = Line[1];
                         string frequency = Line[2];
                         Controller SimulatedController = new(callsign, frequency, 0, 0);
-                        foundControllers.Append(SimulatedController);
+                        controllerList.Add(SimulatedController);
+                        foundControllers = controllerList.ToArray();
                     }
                     else
                     {
@@ -62,7 +63,14 @@ namespace VRC_Game.Readers
                         throw new FormatException();
                     }
                 }
-               
+
+                if (foundControllers.Length == 0)
+                {
+                    foundControllers[0].Callsign = "NONE";
+                    foundControllers[0].Frequency = "00000";
+                }
+                LogFile.Log($"Found {foundControllers.Length} Controllers!");
+                return foundControllers;
             }
             
         }
