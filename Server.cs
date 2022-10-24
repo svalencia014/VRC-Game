@@ -200,6 +200,8 @@ namespace VRC_Game.Server
 
 				await Send($"#TMVRCGame:{Callsign}:Connected");
                 LogFile.Log($"{ Callsign} connected");
+                
+                //Connect controllers
 
                 Connected?.Invoke(this, new(Callsign, realName, certificate, rating, lat, lng));
 			}			

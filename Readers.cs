@@ -8,7 +8,7 @@ using VRC_Game.Server;
 
 namespace VRC_Game.Readers
 {
-    class SituationFile
+    public class SituationFile
     {
         public class Controller
         {
