@@ -4,7 +4,9 @@
     {
         public static void Main(string[] args)
         {
-            Console.WriteLine("This shit works");
+            Console.WriteLine("VRC Game v0.0.1");
+            Console.WriteLine("Starting Server...");
+            FSDSserver.Start();
         }
     }
 }
