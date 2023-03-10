@@ -2,6 +2,8 @@
 using System.Threading.Tasks;
 using System.Net.Sockets;
 using VRC_Game;
+using System.Security.Cryptography;
+using System.Diagnostics;
 
 namespace VRC_Game
 {
@@ -12,10 +14,11 @@ namespace VRC_Game
         public static StreamReader? Reader;
         public static Byte[] bytes = new Byte[256];
         public static Controller? Player;
+        public static TcpListener? Server;
 
         public static async void Start()
         {
-            TcpListener Server = new(IPAddress.Parse("127.0.0.1"), 6809);
+            Server = new(IPAddress.Parse("127.0.0.1"), 6809);
             Server.Start();
             Console.WriteLine("Server Started! Please connect to localhost or 127.0.0.1!");
 
@@ -23,7 +26,7 @@ namespace VRC_Game
             {
                 Client = Server.AcceptTcpClient();
                 Stream = Client.GetStream();
-                await Send("$DISERVER:CLIENT:VATSIM FSD v3.13:abcdef12\r\n");
+                await Send("$DISERVER:CLIENT:VATSIM FSD v3.13:abcdef12");
                 Console.WriteLine("Client Connected!");
                 while (Client.Connected)
                 {
@@ -40,7 +43,6 @@ namespace VRC_Game
                         }
                     }
                 }
-                Console.WriteLine("Client Disconnected!");
             }
         }
 
@@ -56,31 +58,43 @@ namespace VRC_Game
             return;
         }
 
-        public static async Task ProcessData(string data)
+        public static async Task ProcessData(string Data)
         {
-            if (data == null)
+            if (Data == null)
             {
                 Console.WriteLine("Data was null");
                 return;
             }
             else
             {
-                if (data.StartsWith("%"))
+                if (Data.StartsWith("%"))
                 {
                     //Position Update
+                    var tokens = Data.Substring("%".Length).Split(':');
+                    var from = tokens[0];
+                    var freq = tokens[1];
+                    if (from == Player.Callsign)
+                    {
+                        if ("1" + freq != Player.Frequency)
+                        {
+                            Player.Frequency = "1" + freq.Substring(0,2) + "." + freq.Substring(2);
+                            Player.ShortFrequency = freq;
+                            Console.WriteLine($"{Player.Callsign} changed to {Player.Frequency}");
+                        } 
+                    }
                     //Ignore for now
                     return;
-                } else if (data.StartsWith("$ID"))
+                } else if (Data.StartsWith("$ID"))
                 {
                     //Client Authentication Packet
-                    var info = data.Substring("$ID".Length).Split(':');
-                    Player = new(info[0], "199.998");
+                    var info = Data.Substring("$ID".Length).Split(':');
+                    Player = new(info[0], "199.998", "99998");
                     Console.WriteLine($"Created new Player with callsign {Player.Callsign} on {Player.Frequency}");
                     return;
-                } else if (data.StartsWith("#AA"))
+                } else if (Data.StartsWith("#AA"))
                 {
                     //ATC Logon
-                    var tokens = data.Substring("#AA".Length).Split(':');
+                    var tokens = Data.Substring("#AA".Length).Split(':');
                     var from = tokens[0];
                     var to = tokens[1];
                     var realName = tokens[2];
@@ -92,6 +106,8 @@ namespace VRC_Game
                     {
                         await Send($"#TMserver:{Player.Callsign}:Connected to VRC-Game.");
                         await Send($"#TMserver:{Player.Callsign}:VRC-Game Version 0.0.1");
+                        await Send($"$CRSERVER:{Player.Callsign}:ATC:Y:{Player.Callsign}");
+                        await Send($"$CRSERVER:{Player.Callsign}:IP:127.0.0.1");
                         await Send($"$ZCSERVER:{Player.Callsign}:84b0829fc89d9d7848");
                         Console.WriteLine($"{Player.Callsign} Logged on!");
                     } else
@@ -100,7 +116,31 @@ namespace VRC_Game
                         Client.Close();
                     }
                     return;
+                } else if (Data.StartsWith("#TM"))
+                {
+                    Console.WriteLine(Data);
+                    var tokens = Data.Substring("#TM".Length).Split(':');
+                    var from = tokens[0];
+                    var to = tokens[1];
+                    var message = tokens[2];
+                    if (to == $"@{Player.ShortFrequency}")
+                    {
+                        Console.WriteLine($"Recieved {message} on {Player.Frequency}");
+                        ProcessCommand(message);
+                    }
+                } else if (Data.StartsWith("#DA"))
+                {
+                    Console.WriteLine($"{Player.Callsign} disconnected");
                 }
+            }
+        }
+
+        public static async Task ProcessCommand(string command)
+        {
+            if (command.StartsWith("add"))
+            {
+                Console.WriteLine("Add Aircraft Command Ran");
+                //Define Add command in documentation first
             }
         }
     }
