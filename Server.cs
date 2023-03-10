@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using VRC_Game;
 using System.Security.Cryptography;
 using System.Diagnostics;
+using System.ComponentModel;
 
 namespace VRC_Game
 {
@@ -76,11 +77,14 @@ namespace VRC_Game
                     var freq = tokens[1];
                     if (from == Player.Callsign)
                     {
-                        if ("1" + freq != Player.Frequency)
+                        if (freq != Player.ShortFrequency)
                         {
                             Player.Frequency = "1" + freq.Substring(0,2) + "." + freq.Substring(2);
                             Player.ShortFrequency = freq;
                             Console.WriteLine($"{Player.Callsign} changed to {Player.Frequency}");
+                        } else
+                        {
+                            return;
                         }
                     }
                     //Ignore for now
@@ -143,16 +147,41 @@ namespace VRC_Game
                 Console.WriteLine("Add Aircraft Command Ran");
                 //Define Add command in documentation first
                 //Temp Syntax: add type rwy altitude heading
-                var tokens = command.Substring("add".Length).Split(' ');
-                var type = tokens[1];
-                var rwy = tokens[2];
-                var altitude = int.Parse(tokens[3]) + Program.MainAirport.Elevation;
-                var heading = tokens[4];
-                var callsign = Aircraft.GenerateCallsign("ga");
-                Console.WriteLine($"Adding a {type} as {callsign} at {altitude} feet");
-                //string callsign, int altitude, int heading, double lng, double lat, string type
-                //Program.SessionAircraft.Add();
+                string[] tokens = command.Substring("add".Length).Split(' ');
+                string type = tokens[1].ToUpper();
+                string rwy = tokens[2];
+                int alt = int.Parse(tokens[3]) + Program.MainAirport.Elevation;
+                int heading = int.Parse(tokens[4]);
+                string callsign = Aircraft.GenerateCallsign("ga");
+                Console.WriteLine($"Adding a {type} as {callsign} at {alt} feet");
+                double lat = runwayQuery(rwy)[0];
+                double lng = runwayQuery(rwy)[1];
+                Aircraft.CreateAirplane(callsign, alt, heading, lat, lng, type);
+                Send($"#TMserver:@{Player.ShortFrequency}:Added {type} {callsign}");
             }
+        }
+
+        public static double[] runwayQuery(string runway)
+        {
+            double[] coordinates = new double[2];
+            IEnumerable<double> longitudeQuery =
+                from Runway in Program.MainAirport.Runways
+                where Runway.ID == runway
+                select Runway.Longitude;
+            IEnumerable<double> latitudeQuery =
+                from Runway in Program.MainAirport.Runways
+                where Runway.ID == runway
+                select Runway.Latitude;
+            foreach (double coord in longitudeQuery)
+            {
+                coordinates[0] = coord;
+            }
+            foreach (double coord in latitudeQuery)
+            {
+                coordinates[1] = coord;
+            }
+
+            return coordinates;
         }
     }
 }

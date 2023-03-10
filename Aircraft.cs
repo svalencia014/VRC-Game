@@ -1,24 +1,21 @@
-﻿namespace VRC_Game
+﻿using System.Runtime.CompilerServices;
+
+namespace VRC_Game
 {
     public class Aircraft
     {
-        public static string Callsign { get; set; }
-        public static int Altitude { get; set; }
-        public static int Heading { get; set; }
-        public static double Latitude { get; set; }
-        public static double Longitude { get; set; }
-        public static string Type { get; set; }
-        public static string Transponder { get; set; }
-        public static string Mode { get; set; }
+        public string Callsign { get; set; }
+        public int Altitude { get; set; }
+        public int Heading { get; set; }
+        public double Latitude { get; set; }
+        public double Longitude { get; set; }
+        public string Type { get; set; }
+        public string Transponder { get; set; }
+        public string Mode { get; set; }
 
-        public Aircraft(string callsign, int altitude, int heading, double lng, double lat, string type)
+        public Aircraft()
         {
-            Callsign = callsign;
-            Altitude = altitude;
-            Heading = heading;
-            Latitude = lng;
-            Longitude = lat;
-            Type = type;
+
         }
 
         public static string GenerateCallsign(string type)
@@ -40,6 +37,12 @@
             }
 
             return callsign;
+        }
+
+        public static void CreateAirplane(string callsign, int alt, int heading, double lat, double lng, string type)
+        {
+            Program.SessionAircraft.Add(new Aircraft() { Callsign = callsign, Altitude = alt, Heading = heading, Latitude = lat, Longitude = lng, Type = type, Transponder = "1200", Mode = "N" });
+            FSDSserver.Send($"@N:{callsign}:1200:12:{lat}:{lng}:{alt}:0:400:123");
         }
     }
 }
