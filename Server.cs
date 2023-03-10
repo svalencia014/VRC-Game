@@ -28,18 +28,15 @@ namespace VRC_Game
                 while (Client.Connected)
                 {
                     int i;
-                    Reader = new(Stream);
-                    String Data = Reader.ReadToEnd();
-                    if (Data.Length == 0)
+                    while ((i = Stream.Read(bytes, 0, bytes.Length)) != 0)
                     {
-                        return;
-                    } else
-                    { 
-                        Console.WriteLine(Data);
-                        String[] DataArray = Data.Split(new[] { "\r\n " }, StringSplitOptions.RemoveEmptyEntries);
-                        for (i = 0; i < DataArray.Length; i++)
+                        String Data = System.Text.Encoding.ASCII.GetString(bytes, 0, i);
+                        String[] DataArray = Data.Split(new[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
+                        Console.WriteLine($"Recieved {DataArray.Length} lines of data.");
+                        int line = 0;
+                        for (line = 0; line < DataArray.Length; line++)
                         {
-                            await ProcessData(DataArray[i]);
+                            ProcessData(DataArray[line]);
                         }
                     }
                 }
