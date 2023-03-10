@@ -1,17 +1,5 @@
 ﻿namespace VRC_Game
 {
-    public class AircraftList
-    {
-        public AircraftList()
-        {
-
-        }
-
-        public static void AddAircraft(Aircraft aircraft)
-        {
-            //Add aircraft to list here, preferrably JSON
-        }
-    }
     public class Aircraft
     {
         public static string Callsign { get; set; }

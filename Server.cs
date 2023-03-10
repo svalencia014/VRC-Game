@@ -15,6 +15,7 @@ namespace VRC_Game
         public static Byte[] bytes = new Byte[256];
         public static Controller? Player;
         public static TcpListener? Server;
+        public static Random rand = new();
 
         public static async void Start()
         {
@@ -80,7 +81,7 @@ namespace VRC_Game
                             Player.Frequency = "1" + freq.Substring(0,2) + "." + freq.Substring(2);
                             Player.ShortFrequency = freq;
                             Console.WriteLine($"{Player.Callsign} changed to {Player.Frequency}");
-                        } 
+                        }
                     }
                     //Ignore for now
                     return;
@@ -141,6 +142,16 @@ namespace VRC_Game
             {
                 Console.WriteLine("Add Aircraft Command Ran");
                 //Define Add command in documentation first
+                //Temp Syntax: add type rwy altitude heading
+                var tokens = command.Substring("add".Length).Split(' ');
+                var type = tokens[1];
+                var rwy = tokens[2];
+                var altitude = int.Parse(tokens[3]) + Program.MainAirport.Elevation;
+                var heading = tokens[4];
+                var callsign = "N" + rand.Next(9).ToString() + rand.Next(9).ToString() + rand.Next(9).ToString(); //Replace with generate callsign
+                Console.WriteLine($"Adding a {type} as {callsign} at {altitude} feet");
+                //string callsign, int altitude, int heading, double lng, double lat, string type
+                //Program.SessionAircraft.Add();
             }
         }
     }
