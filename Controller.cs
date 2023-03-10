@@ -4,10 +4,13 @@
     {
         public string Callsign { get; set; }
         public string Frequency { get; set; }
-        public Controller(string callsign, string frequency)
+        public string ShortFrequency { get; set; }
+
+        public Controller(string callsign, string frequency, string shortfrequency)
         {
             Callsign = callsign;
             Frequency = frequency;
+            ShortFrequency = shortfrequency;
         }
     }
 }
