@@ -20,5 +20,26 @@
             Longitude = lat;
             Type = type;
         }
+
+        public static string GenerateCallsign(string type)
+        {
+            string callsign;
+            if (type == "ga")
+            {
+                callsign = "N";
+                string[] callsignParts = new String[5];
+                Random rand = new();
+                for (int i = 0; i < 5; i ++)
+                {
+                    callsignParts[i] = rand.Next(9).ToString();
+                }
+                callsign = callsign + string.Concat(callsignParts);
+            } else
+            {
+                callsign = "N12345";
+            }
+
+            return callsign;
+        }
     }
 }

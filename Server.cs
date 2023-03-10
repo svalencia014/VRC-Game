@@ -148,7 +148,7 @@ namespace VRC_Game
                 var rwy = tokens[2];
                 var altitude = int.Parse(tokens[3]) + Program.MainAirport.Elevation;
                 var heading = tokens[4];
-                var callsign = "N" + rand.Next(9).ToString() + rand.Next(9).ToString() + rand.Next(9).ToString(); //Replace with generate callsign
+                var callsign = Aircraft.GenerateCallsign("ga");
                 Console.WriteLine($"Adding a {type} as {callsign} at {altitude} feet");
                 //string callsign, int altitude, int heading, double lng, double lat, string type
                 //Program.SessionAircraft.Add();
