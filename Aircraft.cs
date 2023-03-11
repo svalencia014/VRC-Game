@@ -1,5 +1,7 @@
 ﻿using System.Runtime.CompilerServices;
 
+#pragma warning disable 8618
+
 namespace VRC_Game
 {
     public class Aircraft
@@ -42,7 +44,7 @@ namespace VRC_Game
         public static void CreateAirplane(string callsign, int alt, int heading, double lat, double lng, string type)
         {
             Program.SessionAircraft.Add(new Aircraft() { Callsign = callsign, Altitude = alt, Heading = heading, Latitude = lat, Longitude = lng, Type = type, Transponder = "1200", Mode = "N" });
-            FSDSserver.Send($"@N:{callsign}:1200:12:{lat}:{lng}:{alt}:0:400:123");
+            //FSDSserver.Send($"@N:{callsign}:1200:12:{lat}:{lng}:{alt}:0:400:123");
         }
     }
 }

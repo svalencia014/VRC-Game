@@ -6,8 +6,17 @@ using System.Security.Cryptography;
 using System.Diagnostics;
 using System.ComponentModel;
 
+#pragma warning disable 8618
+#pragma warning disable 8602
+
+
 namespace VRC_Game
 {
+    //
+    // Class.Start();
+    // Class class = new Class()
+    // class.Start()
+
     public class FSDSserver
     {
         public static TcpClient? Client;
@@ -15,20 +24,20 @@ namespace VRC_Game
         public static StreamReader? Reader;
         public static Byte[] bytes = new Byte[256];
         public static Controller? Player;
-        public static TcpListener? Server;
+        private static TcpListener _server;
         public static Random rand = new();
 
-        public static async void Start()
+        public static void Start()
         {
-            Server = new(IPAddress.Parse("127.0.0.1"), 6809);
-            Server.Start();
-            Console.WriteLine("Server Started! Please connect to localhost or 127.0.0.1!");
+            _server = new TcpListener(IPAddress.Parse("127.0.0.1"), 6809);
+            _server.Start();
+            Console.WriteLine("_server Started! Please connect to localhost or 127.0.0.1!");
 
             while (true)
             {
-                Client = Server.AcceptTcpClient();
+                Client = _server.AcceptTcpClient();
                 Stream = Client.GetStream();
-                await Send("$DISERVER:CLIENT:VATSIM FSD v3.13:abcdef12");
+                Send("$DISERVER:CLIENT:VATSIM FSD v3.13:abcdef12");
                 Console.WriteLine("Client Connected!");
                 while (Client.Connected)
                 {
@@ -37,7 +46,6 @@ namespace VRC_Game
                     {
                         String Data = System.Text.Encoding.ASCII.GetString(bytes, 0, i);
                         String[] DataArray = Data.Split(new[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
-                        Console.WriteLine($"Recieved {DataArray.Length} lines of data.");
                         int line = 0;
                         for (line = 0; line < DataArray.Length; line++)
                         {
@@ -48,19 +56,17 @@ namespace VRC_Game
             }
         }
 
-        public static async Task Send(string text)
+        private static void Send(string text)
         {
             if (Stream == null)
             {
                 Console.WriteLine("Stream was null");
-                return;
             }
             byte[] msg = System.Text.Encoding.ASCII.GetBytes(text + "\r\n");
             Stream.Write(msg, 0, msg.Length);
-            return;
         }
 
-        public static async Task ProcessData(string Data)
+        private static void ProcessData(string Data)
         {
             if (Data == null)
             {
@@ -93,7 +99,7 @@ namespace VRC_Game
                 {
                     //Client Authentication Packet
                     var info = Data.Substring("$ID".Length).Split(':');
-                    Player = new(info[0], "199.998", "99998");
+                    Player = new Controller(info[0], "199.998", "99998");
                     Console.WriteLine($"Created new Player with callsign {Player.Callsign} on {Player.Frequency}");
                     return;
                 } else if (Data.StartsWith("#AA"))
@@ -109,15 +115,15 @@ namespace VRC_Game
 
                     if (from == Player.Callsign)
                     {
-                        await Send($"#TMserver:{Player.Callsign}:Connected to VRC-Game.");
-                        await Send($"#TMserver:{Player.Callsign}:VRC-Game Version 0.0.1");
-                        await Send($"$CRSERVER:{Player.Callsign}:ATC:Y:{Player.Callsign}");
-                        await Send($"$CRSERVER:{Player.Callsign}:IP:127.0.0.1");
-                        await Send($"$ZCSERVER:{Player.Callsign}:84b0829fc89d9d7848");
+                        Send($"#TMserver:{Player.Callsign}:Connected to VRC-Game.");
+                        Send($"#TMserver:{Player.Callsign}:VRC-Game Version 0.0.1");
+                        Send($"$CRSERVER:{Player.Callsign}:ATC:Y:{Player.Callsign}");
+                        Send($"$CRSERVER:{Player.Callsign}:IP:127.0.0.1");
+                        Send($"$ZCSERVER:{Player.Callsign}:84b0829fc89d9d7848");
                         Console.WriteLine($"{Player.Callsign} Logged on!");
                     } else
                     {
-                        await Send($"#TMserver:{from}:Invalid Callsign");
+                        Send($"#TMserver:{from}:Invalid Callsign");
                         Client.Close();
                     }
                     return;
@@ -140,7 +146,7 @@ namespace VRC_Game
             }
         }
 
-        public static async Task ProcessCommand(string command)
+        private static void ProcessCommand(string command)
         {
             if (command.StartsWith("add"))
             {
@@ -154,34 +160,11 @@ namespace VRC_Game
                 int heading = int.Parse(tokens[4]);
                 string callsign = Aircraft.GenerateCallsign("ga");
                 Console.WriteLine($"Adding a {type} as {callsign} at {alt} feet");
-                double lat = runwayQuery(rwy)[0];
-                double lng = runwayQuery(rwy)[1];
+                double lat = DataQuery.runwayQuery(rwy)[0];
+                double lng = DataQuery.runwayQuery(rwy)[1];
                 Aircraft.CreateAirplane(callsign, alt, heading, lat, lng, type);
                 Send($"#TMserver:@{Player.ShortFrequency}:Added {type} {callsign}");
             }
-        }
-
-        public static double[] runwayQuery(string runway)
-        {
-            double[] coordinates = new double[2];
-            IEnumerable<double> longitudeQuery =
-                from Runway in Program.MainAirport.Runways
-                where Runway.ID == runway
-                select Runway.Longitude;
-            IEnumerable<double> latitudeQuery =
-                from Runway in Program.MainAirport.Runways
-                where Runway.ID == runway
-                select Runway.Latitude;
-            foreach (double coord in longitudeQuery)
-            {
-                coordinates[0] = coord;
-            }
-            foreach (double coord in latitudeQuery)
-            {
-                coordinates[1] = coord;
-            }
-
-            return coordinates;
         }
     }
 }

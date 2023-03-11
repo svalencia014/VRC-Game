@@ -1,6 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.Tracing;
 
+#pragma warning disable 8618
+#pragma warning disable 8604
+#pragma warning disable 8600
+
 namespace VRC_Game
 {
     public class Program
