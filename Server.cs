@@ -56,7 +56,7 @@ namespace VRC_Game
             }
         }
 
-        private static void Send(string text)
+        public static void Send(string text)
         {
             if (Stream == null)
             {
@@ -68,81 +68,73 @@ namespace VRC_Game
 
         private static void ProcessData(string Data)
         {
-            if (Data == null)
+            if (Data.StartsWith("%"))
             {
-                Console.WriteLine("Data was null");
-                return;
-            }
-            else
-            {
-                if (Data.StartsWith("%"))
+                //Position Update
+                var tokens = Data.Substring("%".Length).Split(':');
+                var from = tokens[0];
+                var freq = tokens[1];
+                if (from == Player.Callsign)
                 {
-                    //Position Update
-                    var tokens = Data.Substring("%".Length).Split(':');
-                    var from = tokens[0];
-                    var freq = tokens[1];
-                    if (from == Player.Callsign)
+                    if (freq != Player.ShortFrequency)
                     {
-                        if (freq != Player.ShortFrequency)
-                        {
-                            Player.Frequency = "1" + freq.Substring(0,2) + "." + freq.Substring(2);
-                            Player.ShortFrequency = freq;
-                            Console.WriteLine($"{Player.Callsign} changed to {Player.Frequency}");
-                        } else
-                        {
-                            return;
-                        }
-                    }
-                    //Ignore for now
-                    return;
-                } else if (Data.StartsWith("$ID"))
-                {
-                    //Client Authentication Packet
-                    var info = Data.Substring("$ID".Length).Split(':');
-                    Player = new Controller(info[0], "199.998", "99998");
-                    Console.WriteLine($"Created new Player with callsign {Player.Callsign} on {Player.Frequency}");
-                    return;
-                } else if (Data.StartsWith("#AA"))
-                {
-                    //ATC Logon
-                    var tokens = Data.Substring("#AA".Length).Split(':');
-                    var from = tokens[0];
-                    var to = tokens[1];
-                    var realName = tokens[2];
-                    var certificate = tokens[3];
-                    var password = tokens[4];
-                    var rating = tokens[5];
-
-                    if (from == Player.Callsign)
-                    {
-                        Send($"#TMserver:{Player.Callsign}:Connected to VRC-Game.");
-                        Send($"#TMserver:{Player.Callsign}:VRC-Game Version 0.0.1");
-                        Send($"$CRSERVER:{Player.Callsign}:ATC:Y:{Player.Callsign}");
-                        Send($"$CRSERVER:{Player.Callsign}:IP:127.0.0.1");
-                        Send($"$ZCSERVER:{Player.Callsign}:84b0829fc89d9d7848");
-                        Console.WriteLine($"{Player.Callsign} Logged on!");
+                        Player.Frequency = "1" + freq.Substring(0,2) + "." + freq.Substring(2);
+                        Player.ShortFrequency = freq;
+                        Console.WriteLine($"{Player.Callsign} changed to {Player.Frequency}");
                     } else
                     {
-                        Send($"#TMserver:{from}:Invalid Callsign");
-                        Client.Close();
+                        return;
                     }
-                    return;
-                } else if (Data.StartsWith("#TM"))
-                {
-                    Console.WriteLine(Data);
-                    var tokens = Data.Substring("#TM".Length).Split(':');
-                    var from = tokens[0];
-                    var to = tokens[1];
-                    var message = tokens[2];
-                    if (to == $"@{Player.ShortFrequency}")
-                    {
-                        Console.WriteLine($"Recieved {message} on {Player.Frequency}");
-                        ProcessCommand(message);
-                    }
-                } else if (Data.StartsWith("#DA"))
-                {
-                    Console.WriteLine($"{Player.Callsign} disconnected");
                 }
+                //Ignore for now
+                return;
+            } else if (Data.StartsWith("$ID"))
+            {
+                //Client Authentication Packet
+                var info = Data.Substring("$ID".Length).Split(':');
+                Player = new Controller(info[0], "199.998", "99998");
+                Console.WriteLine($"Created new Player with callsign {Player.Callsign} on {Player.Frequency}");
+                return;
+            } else if (Data.StartsWith("#AA"))
+            {
+                //ATC Logon
+                var tokens = Data.Substring("#AA".Length).Split(':');
+                var from = tokens[0];
+                var to = tokens[1];
+                var realName = tokens[2];
+                var certificate = tokens[3];
+                var password = tokens[4];
+                var rating = tokens[5];
+
+                if (from == Player.Callsign)
+                {
+                    Send($"#TMserver:{Player.Callsign}:Connected to VRC-Game.");
+                    Send($"#TMserver:{Player.Callsign}:VRC-Game Version 0.0.1");
+                    Send($"$CRSERVER:{Player.Callsign}:ATC:Y:{Player.Callsign}");
+                    Send($"$CRSERVER:{Player.Callsign}:IP:127.0.0.1");
+                    Send($"$ZCSERVER:{Player.Callsign}:84b0829fc89d9d7848");
+                    Console.WriteLine($"{Player.Callsign} Logged on!");
+                } else
+                {
+                    Send($"#TMserver:{from}:Invalid Callsign");
+                    Client.Close();
+                }
+                return;
+            } else if (Data.StartsWith("#TM"))
+            {
+                Console.WriteLine(Data);
+                var tokens = Data.Substring("#TM".Length).Split(':');
+                var from = tokens[0];
+                var to = tokens[1];
+                var message = tokens[2];
+                if (to == $"@{Player.ShortFrequency}")
+                {
+                    Console.WriteLine($"Recieved {message} on {Player.Frequency}");
+                    ProcessCommand(message);
+                }
+            } else if (Data.StartsWith("#DA"))
+            {
+                Console.WriteLine($"{Player.Callsign} disconnected");
             }
         }
 
