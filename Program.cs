@@ -27,7 +27,7 @@ namespace VRC_Game
             SessionAircraft = new List<Aircraft>();
             Console.WriteLine("Aircraft list Initialized");
             Console.WriteLine("Starting Server...");
-            FSDSserver.Start();
+            FSDServer.Start();
         }
 
         public static void LoadFile(string path)
