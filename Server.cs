@@ -77,7 +77,7 @@ namespace VRC_Game
             {
                 //Client Authentication Packet
                 var info = data["$ID".Length..].Split(':');
-                Player = new Controller(info[0], "199.998", "99998");
+                Player = new Controller() { Callsign = info[0], Frequency = "199.998", ShortFrequency = "99998" };
                 Console.WriteLine($"Created new Player with callsign {Player.Callsign} on {Player.Frequency}");
                 return;
             }

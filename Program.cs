@@ -1,5 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.Tracing;
+using System.Runtime.InteropServices;
+using VRC_Game;
 
 #pragma warning disable 8618
 #pragma warning disable 8604
@@ -11,6 +13,7 @@ namespace VRC_Game
     {
         public static Airport MainAirport;
         public static List<Aircraft> SessionAircraft;
+        public static List<Controller> SessionControllers;
         public static void Main(string[] args)
         {
             Console.WriteLine("VRC Game v0.0.1");
@@ -23,9 +26,9 @@ namespace VRC_Game
             {
                 //LoadFile(Path)
             }
-            Console.WriteLine("Initializing Airport List");
             SessionAircraft = new List<Aircraft>();
-            Console.WriteLine("Aircraft list Initialized");
+            SessionControllers = new List<Controller>();
+            Console.WriteLine("Aircraft & Controller Lists Ready!");
             Console.WriteLine("Starting Server...");
             FSDServer.Start();
         }
@@ -69,7 +72,10 @@ namespace VRC_Game
                     else if (AirportLines[i].StartsWith("CONTROLLER"))
                     {
                         //Controller Line
-                        //Ignore for now
+                        string[] line = AirportLines[i].Substring("CONTROLLER".Length).Split(":");
+                        string callsign = line[1];
+                        string frequency = line[2].Substring(0, 7);
+                        Controller.CreateController(callsign, frequency);
                     }
                 }
             } else if (path.EndsWith(".sit"))
