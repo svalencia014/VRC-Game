@@ -26,7 +26,7 @@ namespace VRC_Game
     public void Start()
     {
       _server.Start();
-      Console.WriteLine("_server Started! Please connect to localhost or 127.0.0.1!");
+      Console.WriteLine("Server Started! Please connect to localhost or 127.0.0.1!");
 
       while (true)
       {
@@ -103,7 +103,8 @@ namespace VRC_Game
           for (int i = 0; i <= SessionControllers.ToArray().Length - 1; i++)
           {
             Controller controller = SessionControllers[i];
-            Send($"%{controller.Callsign}:{controller.ShortFrequency}:0:150:12:{controller.Runway[0]}:{controller.Runway[1]}");
+            Send($"%{controller.Callsign}:{controller.ShortFrequency}:0:150:12:{controller.Runway[0]}:{controller.Runway[1]}:0");
+            Console.WriteLine($"Connected {controller.Callsign} on {controller.Frequency}");
           }
         }
         else
@@ -111,57 +112,6 @@ namespace VRC_Game
           Send($"#TMserver:{from}:Invalid Callsign");
           Client?.Close();
         }
-      }
-
-      if (data.StartsWith("%"))
-      {
-        //Position Update
-        var tokens = data["%".Length..].Split(':');
-        var from = tokens[0];
-        var freq = tokens[1];
-
-        if (from == Player.Callsign && freq != Player.ShortFrequency)
-        {
-          Player.Frequency = $"1{freq[..2]}.{freq[2..]}";
-          Player.ShortFrequency = freq;
-          Console.WriteLine($"{Player.Callsign} changed to {Player.Frequency}");
-        }
-
-        //Ignore for now
-        return;
-      }
-
-      if (data.StartsWith("$ID"))
-      {
-        //Client Authentication Packet
-        var info = data["$ID".Length..].Split(':');
-        Player = new Controller(info[0], "199.998", "99998", new double[]{0.00, 0.00});
-        Console.WriteLine($"Created new Player with callsign {Player.Callsign} on {Player.Frequency}");
-        return;
-      }
-
-      if (data.StartsWith("#AA"))
-      {
-        //ATC Logon
-        var tokens = data["#AA".Length..].Split(':');
-        var from = tokens[0];
-
-        if (from == Player.Callsign)
-        {
-          Send($"#TMserver:{Player.Callsign}:Connected to VRC-Game.");
-          Send($"#TMserver:{Player.Callsign}:VRC-Game Version 0.0.1");
-          Send($"$CRSERVER:{Player.Callsign}:ATC:Y:{Player.Callsign}");
-          Send($"$CRSERVER:{Player.Callsign}:IP:127.0.0.1");
-          Send($"$ZCSERVER:{Player.Callsign}:84b0829fc89d9d7848");
-          Console.WriteLine($"{Player.Callsign} Logged on!");
-        }
-        else
-        {
-          Send($"#TMserver:{from}:Invalid Callsign");
-          Client?.Close();
-        }
-
-        return;
       }
 
       if (data.StartsWith("#TM"))
