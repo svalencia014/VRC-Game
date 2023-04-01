@@ -17,5 +17,28 @@
       Runways.Add(new Runway(name1, Rwy1Lat, Rwy1Lng));
       Runways.Add(new Runway(name2, Rwy2Lat, Rwy2Lng));
     }
+
+    public double[] RunwayQuery(string runway)
+    {
+      double[] coordinates = new double[2];
+      IEnumerable<double> latitudeQuery =
+          from Runway in Runways
+          where Runway.ID == runway
+          select Runway.Latitude;
+      IEnumerable<double> longitudeQuery =
+          from Runway in Runways
+          where Runway.ID == runway
+          select Runway.Longitude;
+      foreach (double coord in latitudeQuery)
+      {
+        coordinates[0] = coord;
+      }
+      foreach (double coord in longitudeQuery)
+      {
+        coordinates[1] = coord;
+      }
+
+      return coordinates;
+    }
   }
 }

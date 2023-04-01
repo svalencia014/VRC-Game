@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Text;
 using System.Net.Sockets;
+using System.Text.RegularExpressions;
 
 namespace VRC_Game
 {
@@ -11,14 +12,14 @@ namespace VRC_Game
     private static readonly Byte[] bytes = new Byte[256];
     private static Controller Player = new("DEF_GND", "111.0000", "110000", new double[2] { 0.00, 0.00 });
     private readonly TcpListener _server;
-    private static Airport MainAirport = new("KDEF", 0);
+    private Airport MainAirport = new("KDEF", 0);
     private static readonly List<Aircraft> SessionAircraft = new();
     private static readonly List<Controller> SessionControllers = new();
 
-    public FSDServer(string filePath)
+    public FSDServer(string airportFilePath)
     {
       _server = new TcpListener(IPAddress.Parse("127.0.0.1"), 6809);
-      LoadFile(filePath);
+      LoadAirportFile(airportFilePath);
       Console.WriteLine("Aircraft & Controller Lists Ready!");
     }
 
@@ -50,13 +51,13 @@ namespace VRC_Game
       }
     }
 
-    private static void Send(string text)
+    private void Send(string text)
     {
       byte[] msg = Encoding.UTF8.GetBytes($"{text}\r\n");
       Stream?.Write(msg, 0, msg.Length);
     }
 
-    private static void ProcessData(string data)
+    private void ProcessData(string data)
     {
       if (data.StartsWith("%"))
       {
@@ -99,7 +100,7 @@ namespace VRC_Game
           Send($"$CRSERVER:{Player.Callsign}:IP:127.0.0.1");
           Send($"$ZCSERVER:{Player.Callsign}:84b0829fc89d9d7848");
           Console.WriteLine($"{Player.Callsign} Logged on!");
-          for (int i = 0; i <= SessionControllers.ToArray().Length; i++)
+          for (int i = 0; i <= SessionControllers.ToArray().Length - 1; i++)
           {
             Controller controller = SessionControllers[i];
             Send($"%{controller.Callsign}:{controller.ShortFrequency}:0:150:12:{controller.Runway[0]}:{controller.Runway[1]}");
@@ -116,6 +117,7 @@ namespace VRC_Game
 
       if (data.StartsWith("#TM"))
       {
+        Console.WriteLine(data);
         //message
         var tokens = data["#TM".Length..].Split(':');
         var to = tokens[1];
@@ -134,7 +136,7 @@ namespace VRC_Game
       }
     }
 
-    private static void ProcessCommand(string command)
+    private void ProcessCommand(string command)
     {
       if (command.StartsWith("add"))
       {
@@ -148,7 +150,7 @@ namespace VRC_Game
         int alt = int.Parse(tokens[3]) + MainAirport.Elevation;
         int heading = int.Parse(tokens[4]);
         Console.WriteLine($"Adding a {type} at {alt} feet");
-        double[] runwayData = DataQuery.runwayQuery(rwy);
+        double[] runwayData = MainAirport.RunwayQuery(rwy);
         double lat = runwayData[0];
         double lng = runwayData[1];
         Aircraft craft = new(alt, heading, lat, lng, type, "1200", "N");
@@ -157,59 +159,42 @@ namespace VRC_Game
       }
     }
 
-    private static void LoadFile(string path)
+
+    private void LoadAirportFile(string path)
     {
+      Regex airport = new Regex(@"^AIRPORT:(?<icao>.*):(?<alt>.*)$");
+      Regex runway = new Regex(@"^RUNWAY:(?<rwy1>.*)/(?<rwy2>.*):(?<lat1>.*):(?<long1>.*):(?<lat2>.*):(?<long2>.*)$");
+      Regex controller = new Regex(@"^CONTROLLER:(?<callsign>.*):(?<freq>.*)$");
       if (!File.Exists(path))
       {
         Console.WriteLine("File Not Found");
         Environment.Exit(1);
       }
-      if (path.EndsWith(".apt"))
+
+      string AirportFile = File.ReadAllText(path);
+      string[] AirportLines = AirportFile.Split('\n');
+      int i;
+      for (i = 0; i < AirportLines.Length; i++)
       {
-        string AirportFile = File.ReadAllText(path);
-        string[] AirportLines = AirportFile.Split('\n');
-        int i;
-        for (i = 0; i < AirportLines.Length; i++)
+        string line = AirportLines[i];
+        if (airport.IsMatch(line))
         {
-          if (AirportLines[i].StartsWith("AIRPORT"))
-          {
-            //airport line
-            string[] line = AirportLines[i]["AIRPORT".Length..].Split(':');
-            string name = line[1];
-            int alt = int.Parse(line[2]);
-            MainAirport = new(name, alt);
-            Console.WriteLine($"Created Airport {MainAirport.ICAO} at {MainAirport.Elevation}");
-          }
-          else if (AirportLines[i].StartsWith("RUNWAY"))
-          {
-            //Runway Line- RUNWAY:RWY/RWY:LAT1:LNG1:LAT2:LNG2
-            string[] line = AirportLines[i]["RUNWAY".Length..].Split(':');
-            string name1 = line[1][..2];
-            string name2 = line[1].Substring(3, 2);
-            double latitude1 = double.Parse(line[2]);
-            double longitude1 = double.Parse(line[3]);
-            double latitude2 = double.Parse(line[4]);
-            double longitude2 = double.Parse(line[5]);
-            MainAirport?.AddRunway(name1, name2, latitude1, longitude1, latitude2, longitude2);
-            Console.WriteLine($"Created Runway {name1}/{name2} with {name1} at {latitude1},{longitude1} and {name2} at {latitude2},{longitude2}.");
-          }
-          else if (AirportLines[i].StartsWith("CONTROLLER"))
-          {
-            //Controller Line
-            string[] line = AirportLines[i]["CONTROLLER".Length..].Split(":");
-            string callsign = line[1];
-            string frequency = line[2][..7];
-            string shortFrequency = frequency[1..];
-            double[] runway = DataQuery.runwayQuery("08");
-            Controller controller = new(callsign, frequency, shortFrequency, runway);
-            SessionControllers?.Add(controller);
-          }
+          Match match = airport.Match(line);
+          MainAirport = new Airport(match.Groups["icao"].Value, Int32.Parse(match.Groups["alt"].Value));
         }
-      }
-      else if (path.EndsWith(".sit"))
-      {
-        //situation file
-        //handle later
+
+        if (runway.IsMatch(line))
+        {
+          Match match = runway.Match(line);
+          MainAirport.AddRunway(match.Groups["rwy1"].Value, match.Groups["rwy2"].Value, Double.Parse(match.Groups["lat1"].Value), Double.Parse(match.Groups["long1"].Value), Double.Parse(match.Groups["lat2"].Value), Double.Parse(match.Groups["long2"].Value));
+        }
+
+        if (controller.IsMatch(line))
+        {
+          Match match = controller.Match(line);
+          double[] runwayLocation = MainAirport!.RunwayQuery("08");
+          SessionControllers.Add(new Controller(match.Groups["callsign"].Value, match.Groups["freq"].Value, match.Groups["freq"].Value.Replace(".", "").Substring(1), runwayLocation));
+        }
       }
     }
   }
