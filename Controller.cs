@@ -1,4 +1,4 @@
-﻿namespace VRC_Game
+namespace VRC_Game
 {
   public class Controller
   {
@@ -6,7 +6,7 @@
     public string Frequency { get; set; }
     public string ShortFrequency { get; set; }
     public double[] Runway { get; set; }
-
+    
     public Controller(string callsign, string frequency, string shortFrequency, double[] runway)
     {
       Callsign = callsign;

@@ -111,6 +111,79 @@ namespace VRC_Game
           Send($"#TMserver:{from}:Invalid Callsign");
           Client?.Close();
         }
+        }
+            if (data.StartsWith("%"))
+            {
+                //Position Update
+                var tokens = data["%".Length..].Split(':');
+                var from = tokens[0];
+                var freq = tokens[1];
+
+                if (from == Player.Callsign && freq != Player.ShortFrequency)
+                {
+                    Player.Frequency = $"1{freq.Substring(0,2)}.{freq[2..]}";
+                    Player.ShortFrequency = freq;
+                    Console.WriteLine($"{Player.Callsign} changed to {Player.Frequency}");
+                }
+
+                //Ignore for now
+                return;
+            }
+            
+            if (data.StartsWith("$ID"))
+            {
+                //Client Authentication Packet
+                var info = data["$ID".Length..].Split(':');
+                Player = new Controller() { Callsign = info[0], Frequency = "199.998", ShortFrequency = "99998" };
+                Console.WriteLine($"Created new Player with callsign {Player.Callsign} on {Player.Frequency}");
+                return;
+            }
+            
+            if (data.StartsWith("#AA"))
+            {
+                //ATC Logon
+                var tokens = data["#AA".Length..].Split(':');
+                var from = tokens[0];
+                var realName = tokens[2];
+
+                if (from == Player.Callsign)
+                {
+                    Send($"#TMserver:{Player.Callsign}:Connected to VRC-Game.");
+                    Send($"#TMserver:{Player.Callsign}:VRC-Game Version 0.0.1");
+                    Send($"$CRSERVER:{Player.Callsign}:ATC:Y:{Player.Callsign}");
+                    Send($"$CRSERVER:{Player.Callsign}:IP:127.0.0.1");
+                    Send($"$ZCSERVER:{Player.Callsign}:84b0829fc89d9d7848");
+                    Console.WriteLine($"{Player.Callsign} Logged on!");
+                    Controller.LoadControllers();
+                }
+                else
+                {
+                    Send($"#TMserver:{from}:Invalid Callsign");
+                    Client.Close();
+                }
+
+                return;
+            }
+            
+            if (data.StartsWith("#TM"))
+            {
+                //message
+                var tokens = data["#TM".Length..].Split(':');
+                var to = tokens[1];
+                var message = tokens[2];
+
+                if (to == $"@{Player.ShortFrequency}")
+                {
+                    Console.WriteLine($"Recieved {message} on {Player.Frequency}");
+                    ProcessCommand(message);
+                }
+            }
+            else if (data.StartsWith("#DA"))
+            {
+                //ATC Logoff
+                Console.WriteLine($"{Player.Callsign} disconnected");
+            }
+        }
 
         return;
       }
