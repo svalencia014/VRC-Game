@@ -51,7 +51,7 @@ namespace VRC_Game
       }
     }
 
-    private void Send(string text)
+    private static void Send(string text)
     {
       byte[] msg = Encoding.UTF8.GetBytes($"{text}\r\n");
       Stream?.Write(msg, 0, msg.Length);
@@ -111,83 +111,77 @@ namespace VRC_Game
           Send($"#TMserver:{from}:Invalid Callsign");
           Client?.Close();
         }
+      }
+
+      if (data.StartsWith("%"))
+      {
+        //Position Update
+        var tokens = data["%".Length..].Split(':');
+        var from = tokens[0];
+        var freq = tokens[1];
+
+        if (from == Player.Callsign && freq != Player.ShortFrequency)
+        {
+          Player.Frequency = $"1{freq[..2]}.{freq[2..]}";
+          Player.ShortFrequency = freq;
+          Console.WriteLine($"{Player.Callsign} changed to {Player.Frequency}");
         }
-            if (data.StartsWith("%"))
-            {
-                //Position Update
-                var tokens = data["%".Length..].Split(':');
-                var from = tokens[0];
-                var freq = tokens[1];
 
-                if (from == Player.Callsign && freq != Player.ShortFrequency)
-                {
-                    Player.Frequency = $"1{freq.Substring(0,2)}.{freq[2..]}";
-                    Player.ShortFrequency = freq;
-                    Console.WriteLine($"{Player.Callsign} changed to {Player.Frequency}");
-                }
+        //Ignore for now
+        return;
+      }
 
-                //Ignore for now
-                return;
-            }
-            
-            if (data.StartsWith("$ID"))
-            {
-                //Client Authentication Packet
-                var info = data["$ID".Length..].Split(':');
-                Player = new Controller() { Callsign = info[0], Frequency = "199.998", ShortFrequency = "99998" };
-                Console.WriteLine($"Created new Player with callsign {Player.Callsign} on {Player.Frequency}");
-                return;
-            }
-            
-            if (data.StartsWith("#AA"))
-            {
-                //ATC Logon
-                var tokens = data["#AA".Length..].Split(':');
-                var from = tokens[0];
-                var realName = tokens[2];
+      if (data.StartsWith("$ID"))
+      {
+        //Client Authentication Packet
+        var info = data["$ID".Length..].Split(':');
+        Player = new Controller(info[0], "199.998", "99998", new double[]{0.00, 0.00});
+        Console.WriteLine($"Created new Player with callsign {Player.Callsign} on {Player.Frequency}");
+        return;
+      }
 
-                if (from == Player.Callsign)
-                {
-                    Send($"#TMserver:{Player.Callsign}:Connected to VRC-Game.");
-                    Send($"#TMserver:{Player.Callsign}:VRC-Game Version 0.0.1");
-                    Send($"$CRSERVER:{Player.Callsign}:ATC:Y:{Player.Callsign}");
-                    Send($"$CRSERVER:{Player.Callsign}:IP:127.0.0.1");
-                    Send($"$ZCSERVER:{Player.Callsign}:84b0829fc89d9d7848");
-                    Console.WriteLine($"{Player.Callsign} Logged on!");
-                    Controller.LoadControllers();
-                }
-                else
-                {
-                    Send($"#TMserver:{from}:Invalid Callsign");
-                    Client.Close();
-                }
+      if (data.StartsWith("#AA"))
+      {
+        //ATC Logon
+        var tokens = data["#AA".Length..].Split(':');
+        var from = tokens[0];
 
-                return;
-            }
-            
-            if (data.StartsWith("#TM"))
-            {
-                //message
-                var tokens = data["#TM".Length..].Split(':');
-                var to = tokens[1];
-                var message = tokens[2];
-
-                if (to == $"@{Player.ShortFrequency}")
-                {
-                    Console.WriteLine($"Recieved {message} on {Player.Frequency}");
-                    ProcessCommand(message);
-                }
-            }
-            else if (data.StartsWith("#DA"))
-            {
-                //ATC Logoff
-                Console.WriteLine($"{Player.Callsign} disconnected");
-            }
+        if (from == Player.Callsign)
+        {
+          Send($"#TMserver:{Player.Callsign}:Connected to VRC-Game.");
+          Send($"#TMserver:{Player.Callsign}:VRC-Game Version 0.0.1");
+          Send($"$CRSERVER:{Player.Callsign}:ATC:Y:{Player.Callsign}");
+          Send($"$CRSERVER:{Player.Callsign}:IP:127.0.0.1");
+          Send($"$ZCSERVER:{Player.Callsign}:84b0829fc89d9d7848");
+          Console.WriteLine($"{Player.Callsign} Logged on!");
+        }
+        else
+        {
+          Send($"#TMserver:{from}:Invalid Callsign");
+          Client?.Close();
         }
 
         return;
       }
 
+      if (data.StartsWith("#TM"))
+      {
+        //message
+        var tokens = data["#TM".Length..].Split(':');
+        var to = tokens[1];
+        var message = tokens[2];
+
+        if (to == $"@{Player.ShortFrequency}")
+        {
+          Console.WriteLine($"Recieved {message} on {Player.Frequency}");
+          ProcessCommand(message);
+        }
+      }
+      else if (data.StartsWith("#DA"))
+      {
+        //ATC Logoff
+        Console.WriteLine($"{Player.Callsign} disconnected");
+      }
       if (data.StartsWith("#TM"))
       {
         Console.WriteLine(data);
@@ -235,9 +229,9 @@ namespace VRC_Game
 
     private void LoadAirportFile(string path)
     {
-      Regex airport = new Regex(@"^AIRPORT:(?<icao>.*):(?<alt>.*)$");
-      Regex runway = new Regex(@"^RUNWAY:(?<rwy1>.*)/(?<rwy2>.*):(?<lat1>.*):(?<long1>.*):(?<lat2>.*):(?<long2>.*)$");
-      Regex controller = new Regex(@"^CONTROLLER:(?<callsign>.*):(?<freq>.*)$");
+      Regex airport = new(@"^AIRPORT:(?<icao>.*):(?<alt>.*)$");
+      Regex runway = new(@"^RUNWAY:(?<rwy1>.*)/(?<rwy2>.*):(?<lat1>.*):(?<long1>.*):(?<lat2>.*):(?<long2>.*)$");
+      Regex controller = new(@"^CONTROLLER:(?<callsign>.*):(?<freq>.*)$");
       if (!File.Exists(path))
       {
         Console.WriteLine("File Not Found");
@@ -266,7 +260,7 @@ namespace VRC_Game
         {
           Match match = controller.Match(line);
           double[] runwayLocation = MainAirport!.RunwayQuery("08");
-          SessionControllers.Add(new Controller(match.Groups["callsign"].Value, match.Groups["freq"].Value, match.Groups["freq"].Value.Replace(".", "").Substring(1), runwayLocation));
+          SessionControllers.Add(new Controller(match.Groups["callsign"].Value, match.Groups["freq"].Value, match.Groups["freq"].Value.Replace(".", "")[1..], runwayLocation));
         }
       }
     }
