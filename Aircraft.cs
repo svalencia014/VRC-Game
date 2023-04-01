@@ -1,36 +1,48 @@
 ﻿namespace VRC_Game
 {
-    public class AircraftList
+  public class Aircraft
+  {
+    public string Callsign { get; set; }
+    public int Altitude { get; set; }
+    public int Heading { get; set; }
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
+    public string Type { get; set; }
+    public string Transponder { get; set; }
+    public string Mode { get; set; }
+
+    public Aircraft(int altitude, int heading, double latitude, double longitude, string type, string transponder, string mode)
     {
-        public AircraftList()
-        {
-
-        }
-
-        public static void AddAircraft(Aircraft aircraft)
-        {
-            //Add aircraft to list here, preferrably JSON
-        }
+      Callsign = GenerateCallsign(type);
+      Altitude = altitude;
+      Heading = heading;
+      Latitude = latitude;
+      Longitude = longitude;
+      Type = type;
+      Transponder = transponder;
+      Mode = mode;
     }
-    public class Aircraft
+
+    private static string GenerateCallsign(string type)
     {
-        public static string Callsign { get; set; }
-        public static int Altitude { get; set; }
-        public static int Heading { get; set; }
-        public static double Latitude { get; set; }
-        public static double Longitude { get; set; }
-        public static string Type { get; set; }
-        public static string Transponder { get; set; }
-        public static string Mode { get; set; }
-
-        public Aircraft(string callsign, int altitude, int heading, double lng, double lat, string type)
+      string callsign;
+      if (type == "ga")
+      {
+        callsign = "N";
+        string[] callsignParts = new String[5];
+        Random rand = new();
+        for (int i = 0; i < 5; i++)
         {
-            Callsign = callsign;
-            Altitude = altitude;
-            Heading = heading;
-            Latitude = lng;
-            Longitude = lat;
-            Type = type;
+          callsignParts[i] = rand.Next(9).ToString();
         }
+        callsign += string.Concat(callsignParts);
+      }
+      else
+      {
+        callsign = "N12345";
+      }
+
+      return callsign;
     }
+  }
 }

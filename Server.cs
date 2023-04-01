@@ -1,147 +1,218 @@
 ﻿using System.Net;
-using System.Threading.Tasks;
+using System.Text;
 using System.Net.Sockets;
-using VRC_Game;
-using System.Security.Cryptography;
-using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 namespace VRC_Game
 {
-    public class FSDSserver
+  public class FSDServer
+  {
+    private static TcpClient? Client;
+    private static NetworkStream? Stream;
+    private static readonly Byte[] bytes = new Byte[256];
+    private static Controller Player = new("DEF_GND", "111.0000", "110000", new double[2] { 0.00, 0.00 });
+    private readonly TcpListener _server;
+    private Airport MainAirport = new("KDEF", 0);
+    private static readonly List<Aircraft> SessionAircraft = new();
+    private static readonly List<Controller> SessionControllers = new();
+
+    public FSDServer(string airportFilePath)
     {
-        public static TcpClient? Client;
-        public static NetworkStream? Stream;
-        public static StreamReader? Reader;
-        public static Byte[] bytes = new Byte[256];
-        public static Controller? Player;
-        public static TcpListener? Server;
-
-        public static async void Start()
-        {
-            Server = new(IPAddress.Parse("127.0.0.1"), 6809);
-            Server.Start();
-            Console.WriteLine("Server Started! Please connect to localhost or 127.0.0.1!");
-
-            while (true)
-            {
-                Client = Server.AcceptTcpClient();
-                Stream = Client.GetStream();
-                await Send("$DISERVER:CLIENT:VATSIM FSD v3.13:abcdef12");
-                Console.WriteLine("Client Connected!");
-                while (Client.Connected)
-                {
-                    int i;
-                    while ((i = Stream.Read(bytes, 0, bytes.Length)) != 0)
-                    {
-                        String Data = System.Text.Encoding.ASCII.GetString(bytes, 0, i);
-                        String[] DataArray = Data.Split(new[] { "\r\n" }, StringSplitOptions.RemoveEmptyEntries);
-                        Console.WriteLine($"Recieved {DataArray.Length} lines of data.");
-                        int line = 0;
-                        for (line = 0; line < DataArray.Length; line++)
-                        {
-                            ProcessData(DataArray[line]);
-                        }
-                    }
-                }
-            }
-        }
-
-        public static async Task Send(string text)
-        {
-            if (Stream == null)
-            {
-                Console.WriteLine("Stream was null");
-                return;
-            }
-            byte[] msg = System.Text.Encoding.ASCII.GetBytes(text + "\r\n");
-            Stream.Write(msg, 0, msg.Length);
-            return;
-        }
-
-        public static async Task ProcessData(string Data)
-        {
-            if (Data == null)
-            {
-                Console.WriteLine("Data was null");
-                return;
-            }
-            else
-            {
-                if (Data.StartsWith("%"))
-                {
-                    //Position Update
-                    var tokens = Data.Substring("%".Length).Split(':');
-                    var from = tokens[0];
-                    var freq = tokens[1];
-                    if (from == Player.Callsign)
-                    {
-                        if ("1" + freq != Player.Frequency)
-                        {
-                            Player.Frequency = "1" + freq.Substring(0,2) + "." + freq.Substring(2);
-                            Player.ShortFrequency = freq;
-                            Console.WriteLine($"{Player.Callsign} changed to {Player.Frequency}");
-                        } 
-                    }
-                    //Ignore for now
-                    return;
-                } else if (Data.StartsWith("$ID"))
-                {
-                    //Client Authentication Packet
-                    var info = Data.Substring("$ID".Length).Split(':');
-                    Player = new(info[0], "199.998", "99998");
-                    Console.WriteLine($"Created new Player with callsign {Player.Callsign} on {Player.Frequency}");
-                    return;
-                } else if (Data.StartsWith("#AA"))
-                {
-                    //ATC Logon
-                    var tokens = Data.Substring("#AA".Length).Split(':');
-                    var from = tokens[0];
-                    var to = tokens[1];
-                    var realName = tokens[2];
-                    var certificate = tokens[3];
-                    var password = tokens[4];
-                    var rating = tokens[5];
-
-                    if (from == Player.Callsign)
-                    {
-                        await Send($"#TMserver:{Player.Callsign}:Connected to VRC-Game.");
-                        await Send($"#TMserver:{Player.Callsign}:VRC-Game Version 0.0.1");
-                        await Send($"$CRSERVER:{Player.Callsign}:ATC:Y:{Player.Callsign}");
-                        await Send($"$CRSERVER:{Player.Callsign}:IP:127.0.0.1");
-                        await Send($"$ZCSERVER:{Player.Callsign}:84b0829fc89d9d7848");
-                        Console.WriteLine($"{Player.Callsign} Logged on!");
-                    } else
-                    {
-                        await Send($"#TMserver:{from}:Invalid Callsign");
-                        Client.Close();
-                    }
-                    return;
-                } else if (Data.StartsWith("#TM"))
-                {
-                    Console.WriteLine(Data);
-                    var tokens = Data.Substring("#TM".Length).Split(':');
-                    var from = tokens[0];
-                    var to = tokens[1];
-                    var message = tokens[2];
-                    if (to == $"@{Player.ShortFrequency}")
-                    {
-                        Console.WriteLine($"Recieved {message} on {Player.Frequency}");
-                        ProcessCommand(message);
-                    }
-                } else if (Data.StartsWith("#DA"))
-                {
-                    Console.WriteLine($"{Player.Callsign} disconnected");
-                }
-            }
-        }
-
-        public static async Task ProcessCommand(string command)
-        {
-            if (command.StartsWith("add"))
-            {
-                Console.WriteLine("Add Aircraft Command Ran");
-                //Define Add command in documentation first
-            }
-        }
+      _server = new TcpListener(IPAddress.Parse("127.0.0.1"), 6809);
+      LoadAirportFile(airportFilePath);
+      Console.WriteLine("Aircraft & Controller Lists Ready!");
     }
+
+    public void Start()
+    {
+      _server.Start();
+      Console.WriteLine("Server Started! Please connect to localhost or 127.0.0.1!");
+
+      while (true)
+      {
+        Client = _server.AcceptTcpClient();
+        Stream = Client.GetStream();
+        Send("$DISERVER:CLIENT:VATSIM FSD v3.13:abcdef12");
+        Console.WriteLine("Client Connected!");
+        int i;
+        while (Client.Connected)
+        {
+          while ((i = Stream.Read(bytes, 0, bytes.Length)) != 0)
+          {
+            String data = Encoding.ASCII.GetString(bytes, 0, i);
+            if (data == null) break;
+            String[] dataLines = data.Split("\r\n", StringSplitOptions.RemoveEmptyEntries);
+            foreach (var dataLine in dataLines)
+            {
+              ProcessData(dataLine);
+            }
+          }
+        }
+      }
+    }
+
+    private static void Send(string text)
+    {
+      byte[] msg = Encoding.UTF8.GetBytes($"{text}\r\n");
+      Stream?.Write(msg, 0, msg.Length);
+    }
+
+    private void ProcessData(string data)
+    {
+      if (data.StartsWith("%"))
+      {
+        //Position Update
+        var tokens = data["%".Length..].Split(':');
+        var from = tokens[0];
+        var freq = tokens[1];
+
+        if (from == Player.Callsign && freq != Player.ShortFrequency)
+        {
+          Player.Frequency = $"1{freq[..2]}.{freq[2..]}";
+          Player.ShortFrequency = freq;
+          Console.WriteLine($"{Player.Callsign} changed to {Player.Frequency}");
+        }
+
+        //Ignore for now
+        return;
+      }
+
+      if (data.StartsWith("$ID"))
+      {
+        //Client Authentication Packet
+        var info = data["$ID".Length..].Split(':');
+        Player = new Controller(info[0], "199.998", "99998", new double[2] { 0.00, 0.00 });
+        Console.WriteLine($"Created new Player with callsign {Player.Callsign} on {Player.Frequency}");
+        return;
+      }
+
+      if (data.StartsWith("#AA"))
+      {
+        //ATC Logon
+        var tokens = data["#AA".Length..].Split(':');
+        var from = tokens[0];
+
+        if (from == Player.Callsign)
+        {
+          Send($"#TMserver:{Player.Callsign}:Connected to VRC-Game.");
+          Send($"#TMserver:{Player.Callsign}:VRC-Game Version 0.0.1");
+          Send($"$CRSERVER:{Player.Callsign}:ATC:Y:{Player.Callsign}");
+          Send($"$CRSERVER:{Player.Callsign}:IP:127.0.0.1");
+          Send($"$ZCSERVER:{Player.Callsign}:84b0829fc89d9d7848");
+          Console.WriteLine($"{Player.Callsign} Logged on!");
+          for (int i = 0; i <= SessionControllers.ToArray().Length - 1; i++)
+          {
+            Controller controller = SessionControllers[i];
+            Send($"%{controller.Callsign}:{controller.ShortFrequency}:0:150:12:{controller.Runway[0]}:{controller.Runway[1]}:0");
+            Console.WriteLine($"Connected {controller.Callsign} on {controller.Frequency}");
+          }
+        }
+        else
+        {
+          Send($"#TMserver:{from}:Invalid Callsign");
+          Client?.Close();
+        }
+      }
+
+      if (data.StartsWith("#TM"))
+      {
+        //message
+        var tokens = data["#TM".Length..].Split(':');
+        var to = tokens[1];
+        var message = tokens[2];
+
+        if (to == $"@{Player.ShortFrequency}")
+        {
+          Console.WriteLine($"Recieved {message} on {Player.Frequency}");
+          ProcessCommand(message);
+        }
+      }
+      else if (data.StartsWith("#DA"))
+      {
+        //ATC Logoff
+        Console.WriteLine($"{Player.Callsign} disconnected");
+      }
+      if (data.StartsWith("#TM"))
+      {
+        Console.WriteLine(data);
+        //message
+        var tokens = data["#TM".Length..].Split(':');
+        var to = tokens[1];
+        var message = tokens[2];
+
+        if (to == $"@{Player.ShortFrequency}")
+        {
+          Console.WriteLine($"Recieved {message} on {Player.Frequency}");
+          ProcessCommand(message);
+        }
+      }
+      else if (data.StartsWith("#DA"))
+      {
+        //ATC Logoff
+        Console.WriteLine($"{Player.Callsign} disconnected");
+      }
+    }
+
+    private void ProcessCommand(string command)
+    {
+      if (command.StartsWith("add"))
+      {
+        Console.WriteLine("Add Aircraft Command Ran");
+
+        //Define Add command in documentation first
+        //Temp Syntax: add type rwy altitude heading
+        string[] tokens = command["add".Length..].Split(' ');
+        string type = tokens[1].ToUpper();
+        string rwy = tokens[2];
+        int alt = int.Parse(tokens[3]) + MainAirport.Elevation;
+        int heading = int.Parse(tokens[4]);
+        Console.WriteLine($"Adding a {type} at {alt} feet");
+        double[] runwayData = MainAirport.RunwayQuery(rwy);
+        double lat = runwayData[0];
+        double lng = runwayData[1];
+        Aircraft craft = new(alt, heading, lat, lng, type, "1200", "N");
+        Send($"@N:{craft.Callsign}:1200:12:{lat}:{lng}:{alt}:0:400:123");
+        Send($"#TMserver:@{Player.ShortFrequency}:Added {type} {craft.Callsign}");
+      }
+    }
+
+
+    private void LoadAirportFile(string path)
+    {
+      Regex airport = new(@"^AIRPORT:(?<icao>.*):(?<alt>.*)$");
+      Regex runway = new(@"^RUNWAY:(?<rwy1>.*)/(?<rwy2>.*):(?<lat1>.*):(?<long1>.*):(?<lat2>.*):(?<long2>.*)$");
+      Regex controller = new(@"^CONTROLLER:(?<callsign>.*):(?<freq>.*)$");
+      if (!File.Exists(path))
+      {
+        Console.WriteLine("File Not Found");
+        Environment.Exit(1);
+      }
+
+      string AirportFile = File.ReadAllText(path);
+      string[] AirportLines = AirportFile.Split('\n');
+      int i;
+      for (i = 0; i < AirportLines.Length; i++)
+      {
+        string line = AirportLines[i];
+        if (airport.IsMatch(line))
+        {
+          Match match = airport.Match(line);
+          MainAirport = new Airport(match.Groups["icao"].Value, Int32.Parse(match.Groups["alt"].Value));
+        }
+
+        if (runway.IsMatch(line))
+        {
+          Match match = runway.Match(line);
+          MainAirport.AddRunway(match.Groups["rwy1"].Value, match.Groups["rwy2"].Value, Double.Parse(match.Groups["lat1"].Value), Double.Parse(match.Groups["long1"].Value), Double.Parse(match.Groups["lat2"].Value), Double.Parse(match.Groups["long2"].Value));
+        }
+
+        if (controller.IsMatch(line))
+        {
+          Match match = controller.Match(line);
+          double[] runwayLocation = MainAirport!.RunwayQuery("08");
+          SessionControllers.Add(new Controller(match.Groups["callsign"].Value, match.Groups["freq"].Value, match.Groups["freq"].Value.Replace(".", "")[1..], runwayLocation));
+        }
+      }
+    }
+  }
 }
