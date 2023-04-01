@@ -97,6 +97,7 @@ namespace VRC_Game
                     Send($"$CRSERVER:{Player.Callsign}:IP:127.0.0.1");
                     Send($"$ZCSERVER:{Player.Callsign}:84b0829fc89d9d7848");
                     Console.WriteLine($"{Player.Callsign} Logged on!");
+                    Controller.LoadControllers();
                 }
                 else
                 {

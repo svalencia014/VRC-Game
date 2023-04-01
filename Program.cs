@@ -17,6 +17,8 @@ namespace VRC_Game
         public static void Main(string[] args)
         {
             Console.WriteLine("VRC Game v0.0.1");
+            SessionAircraft = new List<Aircraft>();
+            SessionControllers = new List<Controller>();
             Console.WriteLine("Please Enter the Path of your Airport (.apt) file");
             string Path = Console.ReadLine();
             LoadFile(Path);
@@ -26,8 +28,6 @@ namespace VRC_Game
             {
                 //LoadFile(Path)
             }
-            SessionAircraft = new List<Aircraft>();
-            SessionControllers = new List<Controller>();
             Console.WriteLine("Aircraft & Controller Lists Ready!");
             Console.WriteLine("Starting Server...");
             FSDServer.Start();
