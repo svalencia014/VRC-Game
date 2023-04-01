@@ -15,6 +15,7 @@ namespace VRC_Game
     private Airport MainAirport = new("KDEF", 0);
     private static readonly List<Aircraft> SessionAircraft = new();
     private static readonly List<Controller> SessionControllers = new();
+    private static readonly List<BackgroundTimer> backgroundTimers = new();
 
     public FSDServer(string airportFilePath)
     {
@@ -23,10 +24,23 @@ namespace VRC_Game
       Console.WriteLine("Aircraft & Controller Lists Ready!");
     }
 
+    public static void StartBackgroundTasks()
+    {
+      foreach (BackgroundTimer task in backgroundTimers)
+      {
+        task.Start();
+      }
+    }
+
     public void Start()
     {
       _server.Start();
       Console.WriteLine("Server Started! Please connect to localhost or 127.0.0.1!");
+
+      backgroundTimers.Add(new(TimeSpan.FromMilliseconds(5000), HandleControllerPositionUpdates));
+      backgroundTimers.Add(new(TimeSpan.FromMilliseconds(5000), HandleAircraftPositionUpdates));
+
+      StartBackgroundTasks();
 
       while (true)
       {
@@ -57,7 +71,7 @@ namespace VRC_Game
       Stream?.Write(msg, 0, msg.Length);
     }
 
-    private void ProcessData(string data)
+    private async void ProcessData(string data)
     {
       if (data.StartsWith("%"))
       {
@@ -109,6 +123,7 @@ namespace VRC_Game
         }
         else
         {
+          await StopTimers();
           Send($"#TMserver:{from}:Invalid Callsign");
           Client?.Close();
         }
@@ -148,8 +163,31 @@ namespace VRC_Game
       }
       else if (data.StartsWith("#DA"))
       {
+        await StopTimers();
         //ATC Logoff
         Console.WriteLine($"{Player.Callsign} disconnected");
+      }
+    }
+
+    private static async Task StopTimers()
+    {
+      foreach (BackgroundTimer timer in backgroundTimers)
+      {
+        await timer.StopAsync();
+      }
+    }
+
+    public static void HandleControllerPositionUpdates()
+    {
+      foreach (Controller controller in SessionControllers) {
+        Send($"%{controller.Callsign}:{controller.ShortFrequency}:0:150:12:{controller.Runway[0]}:{controller.Runway[1]}:0");
+      }
+    }
+
+    public static void HandleAircraftPositionUpdates()
+    {
+      foreach (Aircraft aircraft in SessionAircraft) {
+        Send($"@N:{aircraft.Callsign}:{aircraft.Transponder}:12:{aircraft.Latitude}:{aircraft.Longitude}:{aircraft.Altitude}:0:400:123");
       }
     }
 
@@ -171,6 +209,7 @@ namespace VRC_Game
         double lat = runwayData[0];
         double lng = runwayData[1];
         Aircraft craft = new(alt, heading, lat, lng, type, "1200", "N");
+        SessionAircraft.Add(craft);
         Send($"@N:{craft.Callsign}:1200:12:{lat}:{lng}:{alt}:0:400:123");
         Send($"#TMserver:@{Player.ShortFrequency}:Added {type} {craft.Callsign}");
       }
