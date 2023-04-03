@@ -19,7 +19,7 @@ namespace VRC_Game
     public FSDServer(string airportFilePath)
     {
       _server = new TcpListener(IPAddress.Parse("127.0.0.1"), 6809);
-      LoadAirportFile(airportFilePath);
+      VRC_Game.Parser.LoadFile(airportFilePath);
       Console.WriteLine("Aircraft & Controller Lists Ready!");
     }
 
@@ -81,7 +81,7 @@ namespace VRC_Game
       {
         //Client Authentication Packet
         var info = data["$ID".Length..].Split(':');
-        Player = new Controller(info[0], "199.998", "99998", new double[2] { 0.00, 0.00 });
+        Player = new Controller(info[0], "199.998", "99998");
         Console.WriteLine($"Created new Player with callsign {Player.Callsign} on {Player.Frequency}");
         return;
       }
