@@ -3,19 +3,22 @@
   public class Airport
   {
     public string ICAO { get; set; }
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
     public int Elevation { get; set; }
     public List<Runway> Runways { get; set; }
-    public Airport(string icao, int elev)
+    public Airport(string icao, double lat, double lng, int elev)
     {
       ICAO = icao;
       Elevation = elev;
+      Latitude = lat;
+      Longitude = lng;
       Runways = new List<Runway>();
     }
 
-    public void AddRunway(string name1, string name2, double Rwy1Lat, double Rwy1Lng, double Rwy2Lat, double Rwy2Lng)
+    public void AddRunway(string name, double Lat, double Lng, int Heading)
     {
-      Runways.Add(new Runway(name1, Rwy1Lat, Rwy1Lng));
-      Runways.Add(new Runway(name2, Rwy2Lat, Rwy2Lng));
+      Runways.Add(new Runway(name, Lat, Lng, Heading));
     }
 
     public double[] RunwayQuery(string runway)

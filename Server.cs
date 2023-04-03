@@ -10,9 +10,9 @@ namespace VRC_Game
     private static TcpClient? Client;
     private static NetworkStream? Stream;
     private static readonly Byte[] bytes = new Byte[256];
-    private static Controller Player = new("DEF_GND", "111.0000", "110000", new double[2] { 0.00, 0.00 });
+    private static Controller Player = new("DEF_GND", "111.0000");
     private readonly TcpListener _server;
-    private Airport MainAirport = new("KDEF", 0);
+    private Airport MainAirport = new("KDEF", 0, 0, 0);
     private static readonly List<Aircraft> SessionAircraft = new();
     private static readonly List<Controller> SessionControllers = new();
 
