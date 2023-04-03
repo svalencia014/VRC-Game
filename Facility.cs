@@ -1,3 +1,5 @@
+#pragma warning disable 8618
+
 namespace VRC_Game {
     public class Facility {
         public string ID { get; set; }

@@ -23,7 +23,10 @@ namespace VRC_Game
                 Environment.Exit(1);
             } else {
                 object FacilityConfig = JsonConvert.DeserializeObject(FacilityFile);
+                string FacilityId = path.Substring(0, 4);
+                if (FacilityId.EndsWith("")) {
                 
+                }
             }
         }
     }

@@ -10,9 +10,9 @@ namespace VRC_Game
     private static TcpClient? Client;
     private static NetworkStream? Stream;
     private static readonly Byte[] bytes = new Byte[256];
-    private static Controller Player = new("DEF_GND", "111.0000");
+    private static Controller Player = new("DEF_OBS", "111.000");
     private readonly TcpListener _server;
-    private Airport MainAirport = new("KDEF", 0, 0, 0);
+    public Facility CurrentFacility = new("DEF");
     private static readonly List<Aircraft> SessionAircraft = new();
     private static readonly List<Controller> SessionControllers = new();
 
@@ -66,10 +66,9 @@ namespace VRC_Game
         var from = tokens[0];
         var freq = tokens[1];
 
-        if (from == Player.Callsign && freq != Player.ShortFrequency)
+        if (from == Player.Callsign && freq != Player.Frequency)
         {
-          Player.Frequency = $"1{freq[..2]}.{freq[2..]}";
-          Player.ShortFrequency = freq;
+          Player.Frequency = freq;
           Console.WriteLine($"{Player.Callsign} changed to {Player.Frequency}");
         }
 

@@ -2,6 +2,7 @@
 {
   public class Program
   {
+    public FSDServer? fsdServer;
     public static void Main()
     {
       string? airportPath;
@@ -17,8 +18,8 @@
       Console.WriteLine("Starting Server...");
       if (airportPath != null)
       {
-        FSDServer fSDServer = new(airportPath);
-        fSDServer.Start();
+        FSDServer fsdServer = new(airportPath);
+        fsdServer.Start();
       }
     }
   }
