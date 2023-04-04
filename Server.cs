@@ -80,7 +80,7 @@ namespace VRC_Game
       {
         //Client Authentication Packet
         var info = data["$ID".Length..].Split(':');
-        Player = new Controller(info[0], "199.998", "99998");
+        Player = new Controller(info[0], "199.998");
         Console.WriteLine($"Created new Player with callsign {Player.Callsign} on {Player.Frequency}");
         return;
       }
@@ -102,7 +102,7 @@ namespace VRC_Game
           for (int i = 0; i <= SessionControllers.ToArray().Length - 1; i++)
           {
             Controller controller = SessionControllers[i];
-            Send($"%{controller.Callsign}:{controller.ShortFrequency}:0:150:12:{controller.Runway[0]}:{controller.Runway[1]}:0");
+            Send($"%{controller.Callsign}:{controller.Frequency}:0:150:12:0:0:0");
             Console.WriteLine($"Connected {controller.Callsign} on {controller.Frequency}");
           }
         }

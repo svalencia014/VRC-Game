@@ -2,7 +2,7 @@
 {
   public class Program
   {
-    public FSDServer? fsdServer;
+    public static FSDServer fsdServer;
     public static void Main()
     {
       string? airportPath;

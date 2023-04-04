@@ -22,10 +22,18 @@ namespace VRC_Game
                 Console.WriteLine("File is Empty!");
                 Environment.Exit(1);
             } else {
-                object FacilityConfig = JsonConvert.DeserializeObject(FacilityFile);
+                FacilityConfig config = (FacilityConfig)JsonConvert.DeserializeObject(FacilityFile);
                 string FacilityId = path.Substring(0, 4);
-                if (FacilityId.EndsWith("")) {
-                
+                if (FacilityId.EndsWith(".")) {
+                    FacilityId = FacilityId.Substring(0, 3);
+                }
+                Program.fsdServer.CurrentFacility.ID = FacilityId;
+                foreach (var airport in config.airports) {
+                    Program.fsdServer.CurrentFacility.Airports.Add(new Airport(airport.ICAO, airport.Latitude, airport.Longitude, airport.Elevation));
+                    for (int i = 0; i < airport.Runways.Length; i++) {
+                        Program.fsdServer.CurrentFacility.Airports[i].AddRunway(airport.Runways[i].ID, airport.Runways[i].Latitude, airport.Runways[i].Longitude, airport.Runways[i].Heading);
+                    }
+                    //TODO: Add Controller Parsing
                 }
             }
         }
