@@ -2,6 +2,7 @@
 using Newtonsoft.Json;
 
 #pragma warning disable 8600
+#pragma warning disable 8602
 
 namespace VRC_Game
 {
@@ -22,7 +23,7 @@ namespace VRC_Game
                 Console.WriteLine("File is Empty!");
                 Environment.Exit(1);
             } else {
-                FacilityConfig config = (FacilityConfig)JsonConvert.DeserializeObject(FacilityFile);
+                dynamic config = JsonConvert.DeserializeObject(FacilityFile);
                 string FacilityId = path.Substring(0, 4);
                 if (FacilityId.EndsWith(".")) {
                     FacilityId = FacilityId.Substring(0, 3);
@@ -33,8 +34,11 @@ namespace VRC_Game
                     for (int i = 0; i < airport.Runways.Length; i++) {
                         Program.fsdServer.CurrentFacility.Airports[i].AddRunway(airport.Runways[i].ID, airport.Runways[i].Latitude, airport.Runways[i].Longitude, airport.Runways[i].Heading);
                     }
-                    //TODO: Add Controller Parsing
                 }
+                foreach (var controller in config.controllers) {
+                    Program.fsdServer.addController(new Controller(controller.Callsign, controller.frequency));
+                }
+                //TODO: Add Controller Parsing
             }
         }
     }

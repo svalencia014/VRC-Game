@@ -7,7 +7,7 @@
     {
       string? airportPath;
       Console.WriteLine("VRC Game v0.0.1");
-      Console.WriteLine("Please Enter the Path of your Airport (.apt) file");
+      Console.WriteLine("Please Enter the Path of your Facility (.json) file");
       airportPath = Console.ReadLine();
       //Console.WriteLine("Enter the Path of your Situation (.sit) file or press enter to skip");
       //path = Console.ReadLine();
