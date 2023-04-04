@@ -106,6 +106,7 @@ namespace VRC_Game
           for (int i = 0; i <= SessionControllers.ToArray().Length - 1; i++)
           {
             Controller controller = SessionControllers[i];
+            controller.Frequency = controller.Frequency.Replace(".", "").Substring(1);
             Send($"%{controller.Callsign}:{controller.Frequency}:0:150:12:0:0:0");
             Console.WriteLine($"Connected {controller.Callsign} on {controller.Frequency}");
           }
@@ -179,19 +180,19 @@ namespace VRC_Game
       }
     }
 
-    private void setupServer(FacilityConfig Configuration)
+    private void setupServer(Facility Configuration)
     {
       Console.WriteLine($"Loaded Facility {CurrentFacility.ID}");
-      foreach (var airport in Configuration.airports)
+      foreach (var airport in Configuration.Airports)
       {
         CurrentFacility.Airports.Add(new Airport(airport.ICAO, airport.Latitude, airport.Longitude, airport.Elevation));
-        for (int i = 0; i < airport.Runways.Length; i++) 
+        for (int i = 0; i < airport.Runways.Count; i++) 
         {
           CurrentFacility.Airports[i].AddRunway(airport.Runways[i].ID, airport.Runways[i].Latitude, airport.Runways[i].Longitude, airport.Runways[i].Heading);
         }
       }
 
-      foreach (var controller in Configuration.controllers)
+      foreach (var controller in Configuration.Controllers)
       {
         SessionControllers.Add(new Controller(controller.Callsign, controller.Frequency));
       }

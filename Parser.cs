@@ -8,7 +8,7 @@ namespace VRC_Game
 {
   public class Parser
   {
-    public static FacilityConfig LoadFile(string path)
+    public static Facility LoadFile(string path)
     {
       if (!path.EndsWith(".json"))
       {
@@ -33,7 +33,7 @@ namespace VRC_Game
       else
       {
         dynamic config = JsonConvert.DeserializeObject(FacilityFile);
-        
+        string FacilityId = path.Replace(".json","");
         if (config == null)
         {
             Console.WriteLine("Error loading facility");
@@ -42,11 +42,13 @@ namespace VRC_Game
         }
         else
         {
-          FacilityConfig facilityConfig = new FacilityConfig();
+          Facility facilityConfig = new Facility(FacilityId);
           foreach (var airport in config.airports) {
-            facilityConfig.airports.Append(new FacilityConfig.Airport(Convert.ToString(airport.id), Convert.ToDouble(airport.latitude), Convert.ToDouble(airport.longitude), Convert.ToInt32(airport.elevation)));
+            facilityConfig.Airports.Add(new Airport(Convert.ToString(airport.id), Convert.ToDouble(airport.latitude), Convert.ToDouble(airport.longitude), Convert.ToInt32(airport.elevation)));
           }
-          facilityConfig.controllers = config.controllers;
+          foreach (var controller in config.controllers) {
+            facilityConfig.Controllers.Add(new Controller(Convert.ToString(controller.callsign), Convert.ToString(controller.frequency)));
+          }
           return facilityConfig;
         }
       }
