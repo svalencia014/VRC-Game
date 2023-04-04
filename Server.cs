@@ -26,7 +26,9 @@ namespace VRC_Game
 
     public void Start()
     {
-      Parser.LoadFile(ConfigFilePath);
+      dynamic Configuration = Parser.LoadFile(ConfigFilePath);
+      setupServer(Configuration);
+
       _server.Start();
       Console.WriteLine("Server Started! Please connect to localhost or 127.0.0.1!");
 
@@ -176,11 +178,25 @@ namespace VRC_Game
         Send($"#TMserver:@{Player.Frequency}:Added {type} {craft.Callsign}");
       }
     }
-    
-    public void addController(Controller con)
+
+    private void setupServer(FacilityConfig Configuration)
     {
-      con.Frequency = con.Frequency.Replace(".", "").Substring(1);
-      SessionControllers.Add(con);
+      Console.WriteLine($"Loaded Facility {CurrentFacility.ID}");
+      foreach (var airport in Configuration.airports)
+      {
+        CurrentFacility.Airports.Add(new Airport(airport.ICAO, airport.Latitude, airport.Longitude, airport.Elevation));
+        for (int i = 0; i < airport.Runways.Length; i++) 
+        {
+          CurrentFacility.Airports[i].AddRunway(airport.Runways[i].ID, airport.Runways[i].Latitude, airport.Runways[i].Longitude, airport.Runways[i].Heading);
+        }
+      }
+
+      foreach (var controller in Configuration.controllers)
+      {
+        SessionControllers.Add(new Controller(controller.Callsign, controller.Frequency));
+      }
+
+      Console.WriteLine($"Loaded {CurrentFacility.Airports.Count} Airports");
     }
   }
 }

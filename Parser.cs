@@ -6,40 +6,50 @@ using Newtonsoft.Json;
 
 namespace VRC_Game
 {
-    public class Parser
+  public class Parser
+  {
+    public static FacilityConfig LoadFile(string path)
     {
-        public static void LoadFile(string path)
-        {
-            if (!path.EndsWith(".json")) {
-                Console.WriteLine("Invalid File Type! Expected .json");
-                Environment.Exit(1);
-            } else if (!File.Exists(path)) {
-                Console.WriteLine("File Not Found!");
-                Environment.Exit(1);
-            }
+      if (!path.EndsWith(".json"))
+      {
+        Console.WriteLine("Invalid File Type! Expected .json");
+        Environment.Exit(1);
+        return null;
+      }
+      else if (!File.Exists(path))
+      {
+        Console.WriteLine("File Not Found!");
+        Environment.Exit(1);
+        return null;
+      }
 
-            string FacilityFile = File.ReadAllText(path);
-            if (FacilityFile == null) {
-                Console.WriteLine("File is Empty!");
-                Environment.Exit(1);
-            } else {
-                dynamic config = JsonConvert.DeserializeObject(FacilityFile);
-                string FacilityId = path.Substring(0, 4);
-                if (FacilityId.EndsWith(".")) {
-                    FacilityId = FacilityId.Substring(0, 3);
-                }
-                Program.fsdServer.CurrentFacility.ID = FacilityId;
-                foreach (var airport in config.airports) {
-                    Program.fsdServer.CurrentFacility.Airports.Add(new Airport(airport.ICAO, airport.Latitude, airport.Longitude, airport.Elevation));
-                    for (int i = 0; i < airport.Runways.Length; i++) {
-                        Program.fsdServer.CurrentFacility.Airports[i].AddRunway(airport.Runways[i].ID, airport.Runways[i].Latitude, airport.Runways[i].Longitude, airport.Runways[i].Heading);
-                    }
-                }
-                foreach (var controller in config.controllers) {
-                    Program.fsdServer.addController(new Controller(controller.Callsign, controller.frequency));
-                }
-                //TODO: Add Controller Parsing
-            }
+      string FacilityFile = File.ReadAllText(path);
+      if (FacilityFile == null)
+      {
+        Console.WriteLine("File is Empty!");
+        Environment.Exit(1);
+        return null;
+      }
+      else
+      {
+        dynamic config = JsonConvert.DeserializeObject(FacilityFile);
+        
+        if (config == null)
+        {
+            Console.WriteLine("Error loading facility");
+            Environment.Exit(1);
+            return null;
         }
+        else
+        {
+          FacilityConfig facilityConfig = new FacilityConfig();
+          foreach (var airport in config.airports) {
+            facilityConfig.airports.Append(new FacilityConfig.Airport(Convert.ToString(airport.id), Convert.ToDouble(airport.latitude), Convert.ToDouble(airport.longitude), Convert.ToInt32(airport.elevation)));
+          }
+          facilityConfig.controllers = config.controllers;
+          return facilityConfig;
+        }
+      }
     }
+  }
 }

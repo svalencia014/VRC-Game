@@ -1,57 +1,57 @@
 {
-    "airports": [
+  "airports": [
+    {
+      "id": "KJAX",
+      "latitude": 30.4940456,
+      "longitude": -81.6878467,
+      "elevation": 30,
+      "runways": [
         {
-            "id": "KJAX",
-            "latitude": 30.4940456,
-            "longitude": -81.6878467,
-            "elevation": 30,
-            "runways": [
-                {
-                    "id": "08",
-                    "latitude": 30.496216,
-                    "longitude": -81.699965,
-                    "heading": 77
-                },
-                {
-                    "id": "26",
-                    "latitude": 30.505372,
-                    "longitude": -81.670027,
-                    "heading": 257
-                },
-                {
-                    "id": "14",
-                    "latitude": 30.492162,
-                    "longitude": -81.700837,
-                    "heading": 137
-                },
-                {
-                    "id": "32",
-                    "latitude": 30.4784,
-                    "longitude": -81.682267,
-                    "heading": 317
-                }
-            ],
-            "parking": [
-                {
-                    "id": "UPS",
-                    "latitude":30.486402755299636,
-                    "longitude": -81.6847390777831
-                }
-            ]
-        }
-    ],
-    "controllers": [
-        {
-            "callsign": "JAX_DEL",
-            "frequency": "119.500"
+          "id": "08",
+          "latitude": 30.496216,
+          "longitude": -81.699965,
+          "heading": 77
         },
         {
-            "callsign": "JAX_GND",
-            "frequency": "121.900"
+          "id": "26",
+          "latitude": 30.505372,
+          "longitude": -81.670027,
+          "heading": 257
         },
         {
-            "callsign": "JAX_TWR",
-            "frequency": "118.300"
+          "id": "14",
+          "latitude": 30.492162,
+          "longitude": -81.700837,
+          "heading": 137
+        },
+        {
+          "id": "32",
+          "latitude": 30.4784,
+          "longitude": -81.682267,
+          "heading": 317
         }
-    ]
+      ],
+      "parking": [
+          {
+              "id": "UPS",
+              "latitude":30.486402755299636,
+              "longitude": -81.6847390777831
+          }
+      ]
+    }
+  ],
+  "controllers": [
+    {
+      "callsign": "JAX_DEL",
+      "frequency": "119.500"
+    },
+    {
+      "callsign": "JAX_GND",
+      "frequency": "121.900"
+    },
+    {
+      "callsign": "JAX_TWR",
+      "frequency": "118.300"
+    }
+  ]
 }
