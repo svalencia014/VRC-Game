@@ -26,7 +26,7 @@ namespace VRC_Game
 
     public void Start()
     {
-      VRC_Game.Parser.LoadFile(ConfigFilePath);
+      Parser.LoadFile(ConfigFilePath);
       _server.Start();
       Console.WriteLine("Server Started! Please connect to localhost or 127.0.0.1!");
 
@@ -176,8 +176,7 @@ namespace VRC_Game
         Send($"#TMserver:@{Player.Frequency}:Added {type} {craft.Callsign}");
       }
     }
-
-
+    
     public void addController(Controller con)
     {
       con.Frequency = con.Frequency.Replace(".", "").Substring(1);

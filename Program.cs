@@ -19,7 +19,13 @@
       if (airportPath != null)
       {
         FSDServer fsdServer = new(airportPath);
-        fsdServer.Start();
+        if (fsdServer != null)
+        {
+          fsdServer.Start();
+        } else {
+          Console.WriteLine("Server Failed to Start!");
+          Environment.Exit(2);
+        }
       }
     }
   }
