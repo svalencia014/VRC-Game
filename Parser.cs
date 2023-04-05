@@ -33,7 +33,7 @@ namespace VRC_Game
       else
       {
         dynamic config = JsonConvert.DeserializeObject(FacilityFile);
-        string FacilityId = path.Replace(".json","");
+        string FacilityId = path.Replace(".json","").Substring(path.LastIndexOf("\\") + 1);
         if (config == null)
         {
             Console.WriteLine("Error loading facility");
@@ -45,6 +45,10 @@ namespace VRC_Game
           Facility facilityConfig = new Facility(FacilityId);
           foreach (var airport in config.airports) {
             facilityConfig.Airports.Add(new Airport(Convert.ToString(airport.id), Convert.ToDouble(airport.latitude), Convert.ToDouble(airport.longitude), Convert.ToInt32(airport.elevation)));
+            for (int i = 0; i < airport.runways.Count; i++) 
+            {
+              facilityConfig.Airports[facilityConfig.Airports.Count - 1].Runways.Add(new Runway(Convert.ToString(airport.Runways[i].id), Convert.ToInt32(airport.Runways[i].heading), Convert.ToDouble(airport.Runways[i].latitude), Convert.ToDouble(airport.Runways[i].longitude)));
+            }
           }
           foreach (var controller in config.controllers) {
             facilityConfig.Controllers.Add(new Controller(Convert.ToString(controller.callsign), Convert.ToString(controller.frequency)));

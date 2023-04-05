@@ -136,25 +136,6 @@ namespace VRC_Game
         //ATC Logoff
         Console.WriteLine($"{Player.Callsign} disconnected");
       }
-      if (data.StartsWith("#TM"))
-      {
-        Console.WriteLine(data);
-        //message
-        var tokens = data["#TM".Length..].Split(':');
-        var to = tokens[1];
-        var message = tokens[2];
-
-        if (to == $"@{Player.Frequency}")
-        {
-          Console.WriteLine($"Recieved {message} on 1{Player.Frequency[0..2]}.{Player.Frequency[2..]}");
-          ProcessCommand(message);
-        }
-      }
-      else if (data.StartsWith("#DA"))
-      {
-        //ATC Logoff
-        Console.WriteLine($"{Player.Callsign} disconnected");
-      }
     }
 
     private void ProcessCommand(string command)
@@ -182,6 +163,7 @@ namespace VRC_Game
 
     private void setupServer(Facility Configuration)
     {
+      CurrentFacility.ID = Configuration.ID;
       Console.WriteLine($"Loaded Facility {CurrentFacility.ID}");
       foreach (var airport in Configuration.Airports)
       {
