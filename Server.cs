@@ -10,21 +10,25 @@ namespace VRC_Game
     private static TcpClient? Client;
     private static NetworkStream? Stream;
     private static readonly Byte[] bytes = new Byte[256];
-    private static Controller Player = new("DEF_GND", "111.0000", "110000", new double[2] { 0.00, 0.00 });
+    private static Controller Player = new("DEF_OBS", "111.000");
     private readonly TcpListener _server;
-    private Airport MainAirport = new("KDEF", 0);
+    public Facility CurrentFacility = new("DEF");
     private static readonly List<Aircraft> SessionAircraft = new();
     private static readonly List<Controller> SessionControllers = new();
+    private string ConfigFilePath;
 
     public FSDServer(string airportFilePath)
     {
       _server = new TcpListener(IPAddress.Parse("127.0.0.1"), 6809);
-      LoadAirportFile(airportFilePath);
       Console.WriteLine("Aircraft & Controller Lists Ready!");
+      ConfigFilePath = airportFilePath;
     }
 
     public void Start()
     {
+      dynamic Configuration = Parser.LoadFile(ConfigFilePath);
+      setupServer(Configuration);
+
       _server.Start();
       Console.WriteLine("Server Started! Please connect to localhost or 127.0.0.1!");
 
@@ -66,10 +70,9 @@ namespace VRC_Game
         var from = tokens[0];
         var freq = tokens[1];
 
-        if (from == Player.Callsign && freq != Player.ShortFrequency)
+        if (from == Player.Callsign && freq != Player.Frequency)
         {
-          Player.Frequency = $"1{freq[..2]}.{freq[2..]}";
-          Player.ShortFrequency = freq;
+          Player.Frequency = freq;
           Console.WriteLine($"{Player.Callsign} changed to {Player.Frequency}");
         }
 
@@ -81,7 +84,7 @@ namespace VRC_Game
       {
         //Client Authentication Packet
         var info = data["$ID".Length..].Split(':');
-        Player = new Controller(info[0], "199.998", "99998", new double[2] { 0.00, 0.00 });
+        Player = new Controller(info[0], "199.998");
         Console.WriteLine($"Created new Player with callsign {Player.Callsign} on {Player.Frequency}");
         return;
       }
@@ -103,7 +106,8 @@ namespace VRC_Game
           for (int i = 0; i <= SessionControllers.ToArray().Length - 1; i++)
           {
             Controller controller = SessionControllers[i];
-            Send($"%{controller.Callsign}:{controller.ShortFrequency}:0:150:12:{controller.Runway[0]}:{controller.Runway[1]}:0");
+            controller.Frequency = controller.Frequency.Replace(".", "").Substring(1);
+            Send($"%{controller.Callsign}:{controller.Frequency}:0:150:12:0:0:0");
             Console.WriteLine($"Connected {controller.Callsign} on {controller.Frequency}");
           }
         }
@@ -121,26 +125,7 @@ namespace VRC_Game
         var to = tokens[1];
         var message = tokens[2];
 
-        if (to == $"@{Player.ShortFrequency}")
-        {
-          Console.WriteLine($"Recieved {message} on {Player.Frequency}");
-          ProcessCommand(message);
-        }
-      }
-      else if (data.StartsWith("#DA"))
-      {
-        //ATC Logoff
-        Console.WriteLine($"{Player.Callsign} disconnected");
-      }
-      if (data.StartsWith("#TM"))
-      {
-        Console.WriteLine(data);
-        //message
-        var tokens = data["#TM".Length..].Split(':');
-        var to = tokens[1];
-        var message = tokens[2];
-
-        if (to == $"@{Player.ShortFrequency}")
+        if (to == $"@{Player.Frequency}")
         {
           Console.WriteLine($"Recieved {message} on {Player.Frequency}");
           ProcessCommand(message);
@@ -164,55 +149,22 @@ namespace VRC_Game
         string[] tokens = command["add".Length..].Split(' ');
         string type = tokens[1].ToUpper();
         string rwy = tokens[2];
-        int alt = int.Parse(tokens[3]) + MainAirport.Elevation;
+        int alt = int.Parse(tokens[3]) + CurrentFacility.Airports.First().Elevation;
         int heading = int.Parse(tokens[4]);
         Console.WriteLine($"Adding a {type} at {alt} feet");
-        double[] runwayData = MainAirport.RunwayQuery(rwy);
+        double[] runwayData = CurrentFacility.Airports.First().RunwayQuery(rwy);
         double lat = runwayData[0];
         double lng = runwayData[1];
         Aircraft craft = new(alt, heading, lat, lng, type, "1200", "N");
         Send($"@N:{craft.Callsign}:1200:12:{lat}:{lng}:{alt}:0:400:123");
-        Send($"#TMserver:@{Player.ShortFrequency}:Added {type} {craft.Callsign}");
+        Send($"#TMserver:@{Player.Frequency}:Added {type} {craft.Callsign}");
       }
     }
 
-
-    private void LoadAirportFile(string path)
+    private void setupServer(Facility Configuration)
     {
-      Regex airport = new(@"^AIRPORT:(?<icao>.*):(?<alt>.*)$");
-      Regex runway = new(@"^RUNWAY:(?<rwy1>.*)/(?<rwy2>.*):(?<lat1>.*):(?<long1>.*):(?<lat2>.*):(?<long2>.*)$");
-      Regex controller = new(@"^CONTROLLER:(?<callsign>.*):(?<freq>.*)$");
-      if (!File.Exists(path))
-      {
-        Console.WriteLine("File Not Found");
-        Environment.Exit(1);
-      }
-
-      string AirportFile = File.ReadAllText(path);
-      string[] AirportLines = AirportFile.Split('\n');
-      int i;
-      for (i = 0; i < AirportLines.Length; i++)
-      {
-        string line = AirportLines[i];
-        if (airport.IsMatch(line))
-        {
-          Match match = airport.Match(line);
-          MainAirport = new Airport(match.Groups["icao"].Value, Int32.Parse(match.Groups["alt"].Value));
-        }
-
-        if (runway.IsMatch(line))
-        {
-          Match match = runway.Match(line);
-          MainAirport.AddRunway(match.Groups["rwy1"].Value, match.Groups["rwy2"].Value, Double.Parse(match.Groups["lat1"].Value), Double.Parse(match.Groups["long1"].Value), Double.Parse(match.Groups["lat2"].Value), Double.Parse(match.Groups["long2"].Value));
-        }
-
-        if (controller.IsMatch(line))
-        {
-          Match match = controller.Match(line);
-          double[] runwayLocation = MainAirport!.RunwayQuery("08");
-          SessionControllers.Add(new Controller(match.Groups["callsign"].Value, match.Groups["freq"].Value, match.Groups["freq"].Value.Replace(".", "")[1..], runwayLocation));
-        }
-      }
+      CurrentFacility = Configuration;
+      Console.WriteLine($"Loaded Facility {CurrentFacility.ID}");
     }
   }
 }

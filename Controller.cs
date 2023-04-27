@@ -4,15 +4,11 @@ namespace VRC_Game
   {
     public string Callsign { get; set; }
     public string Frequency { get; set; }
-    public string ShortFrequency { get; set; }
-    public double[] Runway { get; set; }
     
-    public Controller(string callsign, string frequency, string shortFrequency, double[] runway)
+    public Controller(string callsign, string frequency)
     {
       Callsign = callsign;
       Frequency = frequency;
-      ShortFrequency = shortFrequency;
-      Runway = runway;
     }
   }
 }
