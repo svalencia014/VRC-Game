@@ -4,12 +4,14 @@ using Newtonsoft.Json;
 #pragma warning disable 8600
 #pragma warning disable 8602
 
+
 namespace VRC_Game
 {
   public class Parser
   {
     public static Facility LoadFile(string path)
     {
+      Console.WriteLine("Loading Facility...");
       if (!path.EndsWith(".json"))
       {
         Console.WriteLine("Invalid File Type! Expected .json");
@@ -32,6 +34,7 @@ namespace VRC_Game
       }
       else
       {
+        Console.WriteLine("Parsing Facility...");
         dynamic config = JsonConvert.DeserializeObject(FacilityFile);
         string FacilityId = path.Replace(".json","").Substring(path.LastIndexOf("\\") + 1);
         if (config == null)
@@ -42,15 +45,17 @@ namespace VRC_Game
         }
         else
         {
+          Console.WriteLine("Loading Airports...");
           Facility facilityConfig = new Facility(FacilityId);
           foreach (var airport in config.airports) {
             facilityConfig.Airports.Add(new Airport(Convert.ToString(airport.id), Convert.ToDouble(airport.latitude), Convert.ToDouble(airport.longitude), Convert.ToInt32(airport.elevation)));
-            foreach (var apt in facilityConfig.Airports) 
+            int i = config.airports.IndexOf(airport);
+            foreach (var rwy in config.airports[i].runways) 
             {
-              int i = facilityConfig.Airports.IndexOf(apt);
-              apt.Runways.Add(new Runway(Convert.ToString(airport.Runways[i].id), Convert.ToInt32(airport.Runways[i].heading), Convert.ToDouble(airport.Runways[i].latitude), Convert.ToDouble(airport.Runways[i].longitude)));
+              facilityConfig.Airports[i].Runways.Add(new Runway(Convert.ToString(rwy.id), Convert.ToDouble(rwy.latitude), Convert.ToDouble(rwy.longitude), Convert.ToInt32(rwy.heading)));
             }
           }
+          Console.WriteLine("Loading Controllers...");
           foreach (var controller in config.controllers) {
             facilityConfig.Controllers.Add(new Controller(Convert.ToString(controller.callsign), Convert.ToString(controller.frequency)));
           }

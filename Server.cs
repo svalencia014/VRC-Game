@@ -163,23 +163,8 @@ namespace VRC_Game
 
     private void setupServer(Facility Configuration)
     {
-      CurrentFacility.ID = Configuration.ID;
+      CurrentFacility = Configuration;
       Console.WriteLine($"Loaded Facility {CurrentFacility.ID}");
-      foreach (var airport in Configuration.Airports)
-      {
-        CurrentFacility.Airports.Add(new Airport(airport.ICAO, airport.Latitude, airport.Longitude, airport.Elevation));
-        for (int i = 0; i < airport.Runways.Count; i++) 
-        {
-          CurrentFacility.Airports[i].AddRunway(airport.Runways[i].ID, airport.Runways[i].Latitude, airport.Runways[i].Longitude, airport.Runways[i].Heading);
-        }
-      }
-
-      foreach (var controller in Configuration.Controllers)
-      {
-        SessionControllers.Add(new Controller(controller.Callsign, controller.Frequency));
-      }
-
-      Console.WriteLine($"Loaded {CurrentFacility.Airports.Count} Airports");
     }
   }
 }
