@@ -26,21 +26,14 @@
     private static string GenerateCallsign(string type)
     {
       string callsign;
-      if (type == "ga")
+      callsign = "N";
+      string[] callsignParts = new String[5];
+      Random rand = new();
+      for (int i = 0; i < 5; i++)
       {
-        callsign = "N";
-        string[] callsignParts = new String[5];
-        Random rand = new();
-        for (int i = 0; i < 5; i++)
-        {
-          callsignParts[i] = rand.Next(9).ToString();
-        }
-        callsign += string.Concat(callsignParts);
+        callsignParts[i] = rand.Next(9).ToString();
       }
-      else
-      {
-        callsign = "N12345";
-      }
+      callsign += string.Concat(callsignParts);
 
       return callsign;
     }
