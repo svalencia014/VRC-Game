@@ -25,6 +25,7 @@
 
     private static string GenerateCallsign(string type)
     {
+      //TODO: Implement Logic to generate callsigns based on class
       string callsign;
       callsign = "N";
       string[] callsignParts = new String[5];

@@ -59,6 +59,8 @@ namespace VRC_Game
           foreach (var controller in config.controllers) {
             facilityConfig.Controllers.Add(new Controller(Convert.ToString(controller.callsign), Convert.ToString(controller.frequency)));
           }
+
+          //TODO: Load in list of gates/parking spots
           return facilityConfig;
         }
       }

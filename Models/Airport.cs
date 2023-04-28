@@ -16,6 +16,8 @@
       Runways = new List<Runway>();
     }
 
+    //Todo: Implement Parking Spot and Taxiway list and methods
+
     public void AddRunway(string name, double Lat, double Lng, int Heading)
     {
       Runways.Add(new Runway(name, Lat, Lng, Heading));
